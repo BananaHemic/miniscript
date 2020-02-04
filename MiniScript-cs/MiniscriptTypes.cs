@@ -635,7 +635,13 @@ namespace Miniscript {
 		public Dictionary<Value, Value>.KeyCollection Keys {
 			get { return map.Keys; }
 		}
-		
+
+		/// <summary>
+		/// Return the ValueCollection for this map.
+		/// </summary>
+		public Dictionary<Value, Value>.ValueCollection Values {
+			get { return map.Values; }
+		}
 		
 		/// <summary>
 		/// Accessor to get/set on element of this map by a string key, walking

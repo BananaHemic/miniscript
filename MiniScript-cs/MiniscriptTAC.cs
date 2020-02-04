@@ -576,7 +576,20 @@ namespace Miniscript {
 			public void Reset(bool clearVariables=true) {
 				lineNum = 0;
 				temps = null;
-				if (clearVariables) variables = ValMap.Create();
+                if (clearVariables)
+                {
+                    if(variables != null)
+                    {
+                        foreach(var val in variables.Values)
+                        {
+                            PoolableValue poolable = val as PoolableValue;
+                            if (poolable != null)
+                                poolable.Dispose();
+                        }
+                        variables.Dispose();
+                    }
+                    variables = ValMap.Create();
+                }
 			}
 
 			public void JumpToEnd() {
@@ -604,6 +617,13 @@ namespace Miniscript {
 				}
 				if (variables == null) variables = ValMap.Create();
 				if (variables.assignOverride == null || !variables.assignOverride(new ValString(identifier), value)) {
+                    // Cleanup existing variables, if applicable
+                    if(variables.TryGetValue(identifier, out Value existing))
+                    {
+                        PoolableValue poolableValue = existing as PoolableValue;
+                        if (poolableValue != null)
+                            poolableValue.Dispose();
+                    }
 					variables[identifier] = value;
 				}
 			}
