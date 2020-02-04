@@ -163,6 +163,32 @@ namespace Miniscript {
 			return 0;
 		}
 	}
+
+    /// <summary>
+    /// In certain platforms, like Unity, memory allocation can
+    /// be very slow. To help alleviate this, Minscript values
+    /// are pooled in a thread static stack of unused values
+    /// </summary>
+    public abstract class PoolableValue : Value, IDisposable
+    {
+        [ThreadStatic]
+        private static Stack<PoolableValue> _pool;
+
+        protected static PoolableValue GetInstance()
+        {
+            if (_pool == null || _pool.Count == 0)
+                return null;
+            return _pool.Pop();
+        }
+        protected abstract void ResetState();
+        public void Dispose()
+        {
+            this.ResetState();
+            if (_pool == null)
+                _pool = new Stack<PoolableValue>();
+            _pool.Push(this);
+        }
+    }
 	
 	public class ValueSorter : IComparer<Value> {
 		public static ValueSorter instance = new ValueSorter();
@@ -543,7 +569,7 @@ namespace Miniscript {
 	/// ValMap represents a MiniScript map, which under the hood is just a Dictionary
 	/// of Value, Value pairs.
 	/// </summary>
-	public class ValMap : Value {
+	public class ValMap : PoolableValue {
 		public Dictionary<Value, Value> map;
 
 		// Assignment override function: return true to cancel (override)
@@ -551,9 +577,22 @@ namespace Miniscript {
 		public delegate bool AssignOverrideFunc(Value key, Value value);
 		public AssignOverrideFunc assignOverride;
 
-		public ValMap() {
+		private ValMap() {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
 		}
+
+        protected override void ResetState()
+        {
+            map.Clear();
+        }
+
+        public static ValMap Create()
+        {
+            ValMap valMap = GetInstance() as ValMap;
+            if (valMap == null)
+                valMap = new ValMap();
+            return valMap;
+        }
 		
 		public override bool BoolValue() {
 			// A map is considered true if it is nonempty.
@@ -804,7 +843,8 @@ namespace Miniscript {
 			result.map[valStr] = map[key];
 			return result;
 		}
-		static ValString keyStr = new ValString("key");
+
+        static ValString keyStr = new ValString("key");
 		static ValString valStr = new ValString("value");
 
 	}
@@ -1073,6 +1113,5 @@ namespace Miniscript {
 			}
 		}
 	}
-	
 }
 

@@ -878,7 +878,7 @@ namespace Miniscript {
 			// NOTE: we must be sure this map gets created at runtime, not here at parse time.
 			// Since it is a mutable object, we need to return a different one each time
 			// this code executes (in a loop, function, etc.).  So, we use Op.CopyA below!
-			ValMap map = new ValMap();
+			ValMap map = ValMap.Create();
 			map.SetElem(ValString.magicIsA, isa);
 			Value result = new ValTemp(output.nextTempNum++);
 			output.Add(new TAC.Line(result, TAC.Line.Op.CopyA, map));
@@ -1028,7 +1028,7 @@ namespace Miniscript {
 			// NOTE: we must be sure this map gets created at runtime, not here at parse time.
 			// Since it is an immutable object, we need to return a different one each time
 			// this code executes (in a loop, function, etc.).  So, we use Op.CopyA below!
-			ValMap map = new ValMap();
+			ValMap map = ValMap.Create();
 			if (tokens.Peek().type == Token.Type.RCurly) {
 				tokens.Dequeue();
 			} else while (true) {

@@ -462,7 +462,7 @@ namespace Miniscript {
 						Dictionary<Value, Value> map = ((ValMap)opA).map;
 						Check.Type(opB, typeof(ValMap), "map combination");
 						Dictionary<Value, Value> map2 = ((ValMap)opB).map;
-						ValMap result = new ValMap();
+						ValMap result = ValMap.Create();
 						foreach (KeyValuePair<Value, Value> kv in map) result.map[kv.Key] = context.ValueInContext(kv.Value);
 						foreach (KeyValuePair<Value, Value> kv in map2) result.map[kv.Key] = context.ValueInContext(kv.Value);
 						return result;
@@ -483,7 +483,7 @@ namespace Miniscript {
 					switch (op) {
 					case Op.BindContextOfA:
 						{
-							if (context.variables == null) context.variables = new ValMap();
+							if (context.variables == null) context.variables = ValMap.Create();
 							ValFunction valFunc = (ValFunction)opA;
 							valFunc.outerVars = context.variables;
 							return null;
@@ -576,7 +576,7 @@ namespace Miniscript {
 			public void Reset(bool clearVariables=true) {
 				lineNum = 0;
 				temps = null;
-				if (clearVariables) variables = new ValMap();
+				if (clearVariables) variables = ValMap.Create();
 			}
 
 			public void JumpToEnd() {
@@ -602,7 +602,7 @@ namespace Miniscript {
 				if (identifier == "globals" || identifier == "locals") {
 					throw new RuntimeException("can't assign to " + identifier);
 				}
-				if (variables == null) variables = new ValMap();
+				if (variables == null) variables = ValMap.Create();
 				if (variables.assignOverride == null || !variables.assignOverride(new ValString(identifier), value)) {
 					variables[identifier] = value;
 				}
@@ -667,17 +667,17 @@ namespace Miniscript {
 			public Value GetVar(string identifier) {
 				// check for special built-in identifiers 'locals' and 'globals'
 				if (identifier == "locals") {
-					if (variables == null) variables = new ValMap();
+					if (variables == null) variables = ValMap.Create();
 					return variables;
 				}
 				if (identifier == "globals") {
-					if (root.variables == null) root.variables = new ValMap();
+					if (root.variables == null) root.variables = ValMap.Create();
 					return root.variables;
 				}
 				if (identifier == "outer") {
 					// return module variables, if we have them; else globals
 					if (outerVars != null) return outerVars;
-					if (root.variables == null) root.variables = new ValMap();
+					if (root.variables == null) root.variables = ValMap.Create();
 					return root.variables;
 				}
 				

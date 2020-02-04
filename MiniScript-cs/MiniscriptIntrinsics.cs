@@ -1068,7 +1068,7 @@ namespace Miniscript {
 			f = Intrinsic.Create("version");
 			f.code = (context, partialResult) => {
 				if (context.vm.versionMap == null) {
-					var d = new ValMap();
+					var d = ValMap.Create();
 					d["miniscript"] = new ValString("1.5");
 			
 					// Getting the build date is annoyingly hard in C#.
@@ -1131,7 +1131,7 @@ namespace Miniscript {
 		/// </summary>
 		public static ValMap FunctionType() {
 			if (_functionType == null) {
-				_functionType = new ValMap();
+				_functionType = ValMap.Create();
 			}
 			return _functionType;
 		}
@@ -1143,7 +1143,7 @@ namespace Miniscript {
 		/// </summary>
 		public static ValMap ListType() {
 			if (_listType == null) {
-				_listType = new ValMap();
+				_listType = ValMap.Create();
 				_listType["hasIndex"] = Intrinsic.GetByName("hasIndex").GetFunc();
 				_listType["indexes"] = Intrinsic.GetByName("indexes").GetFunc();
 				_listType["indexOf"] = Intrinsic.GetByName("indexOf").GetFunc();
@@ -1170,7 +1170,7 @@ namespace Miniscript {
 		/// </summary>
 		public static ValMap StringType() {
 			if (_stringType == null) {
-				_stringType = new ValMap();
+				_stringType = ValMap.Create();
 				_stringType["hasIndex"] = Intrinsic.GetByName("hasIndex").GetFunc();
 				_stringType["indexes"] = Intrinsic.GetByName("indexes").GetFunc();
 				_stringType["indexOf"] = Intrinsic.GetByName("indexOf").GetFunc();
@@ -1195,7 +1195,7 @@ namespace Miniscript {
 		/// </summary>
 		public static ValMap MapType() {
 			if (_mapType == null) {
-				_mapType = new ValMap();
+				_mapType = ValMap.Create();
 				_mapType["hasIndex"] = Intrinsic.GetByName("hasIndex").GetFunc();
 				_mapType["indexes"] = Intrinsic.GetByName("indexes").GetFunc();
 				_mapType["indexOf"] = Intrinsic.GetByName("indexOf").GetFunc();
@@ -1217,7 +1217,7 @@ namespace Miniscript {
 		/// </summary>
 		public static ValMap NumberType() {
 			if (_numberType == null) {
-				_numberType = new ValMap();
+				_numberType = ValMap.Create();
 			}
 			return _numberType;
 		}
