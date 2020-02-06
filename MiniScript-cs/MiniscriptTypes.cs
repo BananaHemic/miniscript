@@ -169,24 +169,65 @@ namespace Miniscript {
     /// be very slow. To help alleviate this, Minscript values
     /// are pooled in a thread static stack of unused values
     /// </summary>
-    public abstract class PoolableValue : Value, IDisposable
+    public abstract class PoolableValue : Value
     {
         [ThreadStatic]
         private static Stack<PoolableValue> _pool;
 
+        protected int _refCount = 1;
+        protected readonly bool _poolable;
+
+        protected PoolableValue(bool usePool)
+        {
+            _poolable = usePool;
+        }
         protected static PoolableValue GetInstance()
         {
             if (_pool == null || _pool.Count == 0)
                 return null;
-            return _pool.Pop();
+            //Console.WriteLine("from pool");
+            PoolableValue val = _pool.Pop();
+            val._refCount = 1;
+            return val;
         }
         protected abstract void ResetState();
-        public void Dispose()
+        public virtual void Ref()
         {
-            this.ResetState();
+            if (_poolable)
+                _refCount++;
+        }
+        public int GetRefCount()
+        {
+            return _refCount;
+        }
+        public virtual void Unref()
+        {
+            if (!_poolable)
+                return;
+
+            _refCount--;
+            if (_refCount > 0)
+                return;
             if (_pool == null)
                 _pool = new Stack<PoolableValue>();
+            this.ResetState();
+            //Console.WriteLine("into pool");
             _pool.Push(this);
+        }
+        public override Value Val(TAC.Context context)
+        {
+            //TODO I think that this is wrong, sometimes
+            // I believe that Val returns a new Value,
+            // instead of the existing one
+            //Console.WriteLine("valref");
+            Ref();
+            return base.Val(context);
+        }
+        public override Value Val(TAC.Context context, out ValMap valueFoundIn)
+        {
+            //Console.WriteLine("valref 2");
+            Ref();
+            return base.Val(context, out valueFoundIn);
         }
     }
 	
@@ -258,14 +299,44 @@ namespace Miniscript {
 	/// ValNumber represents a numeric (double-precision floating point) value in MiniScript.
 	/// Since we also use numbers to represent boolean values, ValNumber does that job too.
 	/// </summary>
-	public class ValNumber : Value {
-		public double value;
+	public class ValNumber : PoolableValue {
+		public double value { get; private set; }
 
-		public ValNumber(double value) {
+		private ValNumber(double value, bool usePool) : base(usePool) {
 			this.value = value;
 		}
+        public static ValNumber Create(double value)
+        {
+            ValNumber val = GetInstance() as ValNumber;
+            if (val != null)
+            {
+                val.value = value;
+                return val;
+            }
+            return new ValNumber(value, true);
+        }
+        public override void Unref()
+        {
+            if (base._refCount == 1)
+            {
+                //Console.WriteLine("Recyclying val " + value);
+            }
+            base.Unref();
+        }
+        //public override Value Val(TAC.Context context)
+        //{
+        //    int prevRef = _refCount;
+        //    Value v = base.Val(context);
+        //    //Console.WriteLine("Due to val, ref increased from " + prevRef + " to " + _refCount + " value " + value);
+        //    if (value == 5)
+        //    {
+        //        Console.WriteLine("Due to val, ref increased from " + prevRef + " to " + _refCount + " value " + value);
+        //    }
+        //    return v;
+        //}
+        //protected override void ResetState() { value = 666; }
 
-		public override string ToString(TAC.Machine vm) {
+        public override string ToString(TAC.Machine vm) {
 			// Convert to a string in the standard MiniScript way.
 			if (value % 1.0 == 0.0) {
 				// integer values as integers
@@ -304,7 +375,7 @@ namespace Miniscript {
 			return rhs is ValNumber && ((ValNumber)rhs).value == value ? 1 : 0;
 		}
 
-		static ValNumber _zero = new ValNumber(0), _one = new ValNumber(1);
+		static ValNumber _zero = new ValNumber(0, false), _one = new ValNumber(1, false);
 		
 		/// <summary>
 		/// Handy accessor to a shared "zero" (0) value.
@@ -339,9 +410,10 @@ namespace Miniscript {
 		public static ValNumber Truth(double truthValue) {
 			if (truthValue == 0.0) return zero;
 			if (truthValue == 1.0) return one;
-			return new ValNumber(truthValue);
+			return ValNumber.Create(truthValue);
 		}
-	}
+
+    }
 	
 	/// <summary>
 	/// ValString represents a string (text) value.
@@ -446,8 +518,14 @@ namespace Miniscript {
 		
 		public List<Value> values;
 
-		public ValList(List<Value> values = null) {
-			this.values = values == null ? new List<Value>() : values;
+		public ValList(List<Value> inputValues = null) {
+			this.values = inputValues == null ? new List<Value>() : inputValues;
+            for(int i = 0; i < values.Count;i++)
+            {
+                PoolableValue valPool = values[i] as PoolableValue;
+                if (valPool != null)
+                    valPool.Ref();
+            }
 		}
 
 		public override Value FullEval(TAC.Context context) {
@@ -577,20 +655,18 @@ namespace Miniscript {
 		public delegate bool AssignOverrideFunc(Value key, Value value);
 		public AssignOverrideFunc assignOverride;
 
-		private ValMap() {
+		private ValMap(bool usePool) : base(usePool) {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
 		}
-
         protected override void ResetState()
         {
             map.Clear();
         }
-
         public static ValMap Create()
         {
             ValMap valMap = GetInstance() as ValMap;
             if (valMap == null)
-                valMap = new ValMap();
+                valMap = new ValMap(true);
             return valMap;
         }
 		
@@ -740,7 +816,7 @@ namespace Miniscript {
 			// This is used when a map literal appears in the source, to
 			// ensure that each time that code executes, we get a new, distinct
 			// mutable object, rather than the same object multiple times.
-			var result = new ValMap();
+			var result = new ValMap(true);
 			foreach (Value k in map.Keys) {
 				Value key = k;		// stupid C#!
 				Value value = map[key];
@@ -826,8 +902,16 @@ namespace Miniscript {
 		/// and if found, give that a chance to handle it instead.
 		/// </summary>
 		public override void SetElem(Value index, Value value) {
+            //Console.WriteLine("Map set elem " + index.ToString() + ": " + value.ToString());
 			if (index == null) index = ValNull.instance;
 			if (assignOverride == null || !assignOverride(index, value)) {
+                // If the index/value is poolable, ref it
+                PoolableValue indexPool = index as PoolableValue;
+                if(indexPool != null)
+                    indexPool.Ref();
+                PoolableValue valPool = value as PoolableValue;
+                if(valPool != null)
+                    valPool.Ref();
 				map[index] = value;
 			}
 		}
@@ -844,7 +928,7 @@ namespace Miniscript {
 				throw new IndexException("index " + index + " out of range for map");
 			}
 			Value key = keys.ElementAt<Value>(index);   // (TODO: consider more efficient methods here)
-			var result = new ValMap();
+			var result = new ValMap(true);
 			result.map[keyStr] = (key is ValNull ? null : key);
 			result.map[valStr] = map[key];
 			return result;

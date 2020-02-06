@@ -189,7 +189,7 @@ namespace Miniscript {
 			/// </summary>
 			public Result(double resultNum) {
 				this.done = true;
-				this.result = new ValNumber(resultNum);
+				this.result = ValNumber.Create(resultNum);
 			}
 
 			/// <summary>
@@ -1080,7 +1080,7 @@ namespace Miniscript {
 					buildDate = buildDate.AddSeconds(version.Revision * 2);
 					d["buildDate"] = new ValString(buildDate.ToString("yyyy-MM-dd"));
 
-					d["host"] = new ValNumber(HostInfo.version);
+					d["host"] = ValNumber.Create(HostInfo.version);
 					d["hostName"] = new ValString(HostInfo.name);
 					d["hostInfo"] = new ValString(HostInfo.info);
 
@@ -1097,7 +1097,7 @@ namespace Miniscript {
 				if (partialResult == null) {
 					// Just starting our wait; calculate end time and return as partial result
 					double interval = context.GetVar("seconds").DoubleValue();
-					return new Intrinsic.Result(new ValNumber(now + interval), false);
+					return new Intrinsic.Result(ValNumber.Create(now + interval), false);
 				} else {
 					// Continue until current time exceeds the time in the partial result
 					if (now > partialResult.result.DoubleValue()) return Intrinsic.Result.Null;

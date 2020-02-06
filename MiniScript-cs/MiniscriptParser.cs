@@ -853,10 +853,11 @@ namespace Miniscript {
 
 			Value val = nextLevel(tokens);
 			if (val is ValNumber) {
-				// If what follows is a numeric literal, just invert it and be done!
-				ValNumber valnum = (ValNumber)val;
-				valnum.value = -valnum.value;
-				return valnum;
+                // If what follows is a numeric literal, just invert it and be done!
+                ValNumber valnum = (ValNumber)val;
+                //valnum.value = -valnum.value;
+                //return valnum;
+                return ValNumber.Create(-valnum.value);
 			}
 			// Otherwise, subtract it from 0 and return a new temporary.
 			int tempNum = output.nextTempNum++;
@@ -1115,7 +1116,7 @@ namespace Miniscript {
 			Token tok = !tokens.AtEnd ? tokens.Dequeue() : Token.EOL;
 			if (tok.type == Token.Type.Number) {
 				double d;
-				if (double.TryParse(tok.text, NumberStyles.Number, CultureInfo.InvariantCulture, out d)) return new ValNumber(d);
+				if (double.TryParse(tok.text, NumberStyles.Number, CultureInfo.InvariantCulture, out d)) return ValNumber.Create(d);
 				throw new CompilerException("invalid numeric literal: " + tok.text);
 			} else if (tok.type == Token.Type.String) {
 				return new ValString(tok.text);

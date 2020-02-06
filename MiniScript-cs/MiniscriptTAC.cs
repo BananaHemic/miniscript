@@ -289,23 +289,23 @@ namespace Miniscript {
 						context.lineNum--;
 						return null;
 					case Op.NotA:
-						return new ValNumber(1.0 - AbsClamp01(fA));
+						return ValNumber.Create(1.0 - AbsClamp01(fA));
 					}
 					if (opB is ValNumber || opB == null) {
 						double fB = opB != null ? ((ValNumber)opB).value : 0;
 						switch (op) {
 						case Op.APlusB:
-							return new ValNumber(fA + fB);
+							return ValNumber.Create(fA + fB);
 						case Op.AMinusB:
-							return new ValNumber(fA - fB);
+							return ValNumber.Create(fA - fB);
 						case Op.ATimesB:
-							return new ValNumber(fA * fB);
+							return ValNumber.Create(fA * fB);
 						case Op.ADividedByB:
-							return new ValNumber(fA / fB);
+							return ValNumber.Create(fA / fB);
 						case Op.AModB:
-							return new ValNumber(fA % fB);
+							return ValNumber.Create(fA % fB);
 						case Op.APowB:
-							return new ValNumber(Math.Pow(fA, fB));
+							return ValNumber.Create(Math.Pow(fA, fB));
 						case Op.AEqualB:
 							return ValNumber.Truth(fA == fB);
 						case Op.ANotEqualB:
@@ -320,10 +320,10 @@ namespace Miniscript {
 							return ValNumber.Truth(fA <= fB);
 						case Op.AAndB:
 							if (!(opB is ValNumber)) fB = opB != null && opB.BoolValue() ? 1 : 0;
-							return new ValNumber(Clamp01(fA * fB));
+							return ValNumber.Create(Clamp01(fA * fB));
 						case Op.AOrB:
 							if (!(opB is ValNumber)) fB = opB != null && opB.BoolValue() ? 1 : 0;
-							return new ValNumber(Clamp01(fA + fB - fA * fB));
+							return ValNumber.Create(Clamp01(fA + fB - fA * fB));
 						default:
 							break;
 						}
@@ -383,7 +383,7 @@ namespace Miniscript {
 							case Op.ALessOrEqualB:
 								return ValNumber.Truth(string.Compare(sA, sB, StringComparison.Ordinal) <= 0);
 							case Op.LengthOfA:
-								return new ValNumber(sA.Length);
+								return ValNumber.Create(sA.Length);
 							default:
 								break;
 						}
@@ -404,7 +404,7 @@ namespace Miniscript {
 						if (idx < 0) idx += list.Count;
 						return list[idx];
 					} else if (op == Op.LengthOfA) {
-						return new ValNumber(list.Count);
+						return ValNumber.Create(list.Count);
 					} else if (op == Op.AEqualB) {
 						return ValNumber.Truth(((ValList)opA).Equality(opB));
 					} else if (op == Op.ANotEqualB) {
@@ -452,7 +452,7 @@ namespace Miniscript {
 						// returns a mini-map containing a key/value pair.
 						return ((ValMap)opA).GetKeyValuePair(opB.IntValue());
 					} else if (op == Op.LengthOfA) {
-						return new ValNumber(((ValMap)opA).Count);
+						return ValNumber.Create(((ValMap)opA).Count);
 					} else if (op == Op.AEqualB) {
 						return ValNumber.Truth(((ValMap)opA).Equality(opB));
 					} else if (op == Op.ANotEqualB) {
@@ -463,8 +463,8 @@ namespace Miniscript {
 						Check.Type(opB, typeof(ValMap), "map combination");
 						Dictionary<Value, Value> map2 = ((ValMap)opB).map;
 						ValMap result = ValMap.Create();
-						foreach (KeyValuePair<Value, Value> kv in map) result.map[kv.Key] = context.ValueInContext(kv.Value);
-						foreach (KeyValuePair<Value, Value> kv in map2) result.map[kv.Key] = context.ValueInContext(kv.Value);
+                        foreach (KeyValuePair<Value, Value> kv in map) result.map[kv.Key] = context.ValueInContext(kv.Value);
+                        foreach (KeyValuePair<Value, Value> kv in map2) result.map[kv.Key] = context.ValueInContext(kv.Value);
 						return result;
 					} else if (op == Op.NotA) {
 						return ValNumber.Truth(!opA.BoolValue());
@@ -507,7 +507,7 @@ namespace Miniscript {
 					} else {
 						result = 1.0 - (1.0 - AbsClamp01(fA)) * (1.0 - AbsClamp01(fB));
 					}
-					return new ValNumber(result);
+					return ValNumber.Create(result);
 				}
 				return null;
 			}
@@ -584,9 +584,9 @@ namespace Miniscript {
                         {
                             PoolableValue poolable = val as PoolableValue;
                             if (poolable != null)
-                                poolable.Dispose();
+                                poolable.Unref();
                         }
-                        variables.Dispose();
+                        variables.Unref();
                     }
                     variables = ValMap.Create();
                 }
@@ -621,8 +621,18 @@ namespace Miniscript {
                     if(variables.TryGetValue(identifier, out Value existing))
                     {
                         PoolableValue poolableValue = existing as PoolableValue;
+                        //if (poolableValue != null && existing != value)
                         if (poolableValue != null)
-                            poolableValue.Dispose();
+                        {
+                            //Console.WriteLine("Var Type was " + existing.GetType().ToString() + " now " + poolableValue.GetType().ToString());
+                            ValNumber exist = existing as ValNumber;
+                            ValNumber upd = value as ValNumber;
+                            //if (exist != null && upd != null)
+                            //    Console.WriteLine("ValNum \"" + identifier + "\" was " + exist.value + " now " + upd.value + " ref count was " + exist.GetRefCount() + " now " + upd.GetRefCount());
+                            //else
+                            //    Console.WriteLine("Val \"" + identifier + "\" was " + existing.ToString() + " now " + value.ToString());
+                            poolableValue.Unref();
+                        }
                     }
 					variables[identifier] = value;
 				}
@@ -954,6 +964,14 @@ namespace Miniscript {
 						if (self != null) nextContext.SetVar("self", self);	// (set only if bound above)
 						stack.Push(nextContext);
 					} else {
+                        // The line.rhsA.Val doesn't call PoolableValue Val() when rhs is a ValVar, so we
+                        // need to make sure to ref the value here
+                        if(line.rhsA is ValVar)
+                        {
+                            PoolableValue poolableValue = funcVal as PoolableValue;
+                            if (poolableValue != null)
+                                poolableValue.Ref();
+                        }
 						context.StoreValue(line.lhs, funcVal);
 					}
 				} else if (line.op == Line.Op.ReturnA) {
@@ -1018,13 +1036,13 @@ namespace Miniscript {
 			return new ValTemp(tempNum);
 		}
 		public static ValNumber Num(double value) {
-			return new ValNumber(value);
+			return ValNumber.Create(value);
 		}
 		public static ValString Str(string value) {
 			return new ValString(value);
 		}
 		public static ValNumber IntrinsicByName(string name) {
-			return new ValNumber(Intrinsic.GetByName(name).id);
+			return ValNumber.Create(Intrinsic.GetByName(name).id);
 		}
 	}
 }

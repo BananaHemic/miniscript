@@ -31,7 +31,8 @@ class MainClass {
 
 		Interpreter miniscript = new Interpreter(sourceLines);
 		List<string> actualOutput = new List<string>();
-		miniscript.standardOutput = (string s) => actualOutput.Add(s);
+        //miniscript.standardOutput = (string s) => { actualOutput.Add(s); Console.WriteLine(s); };
+        miniscript.standardOutput = (string s) => actualOutput.Add(s);
 		miniscript.errorOutput = miniscript.standardOutput;
 		miniscript.implicitOutput = miniscript.standardOutput;
 		miniscript.RunUntilDone(60, false);
@@ -128,15 +129,16 @@ class MainClass {
 		
 		Miniscript.HostInfo.name = "Test harness";
 		
-		Print("Miniscript test harness.\n");
+		//Print("Miniscript test harness.\n");
 
-		Print("Running unit tests.\n");
-		UnitTest.Run();
+		//Print("Running unit tests.\n");
+		//UnitTest.Run();
 
 		Print("Running test suite.\n");
-		RunTestSuite("../../../TestSuite.txt");
+        RunTestSuite("../../../TestSuite.txt");
+        //RunTestSuite("../../../TestSuite_split.txt");
 
-		Print("\n");
+        Print("\n");
 
 		const string quickTestFilePath = "../../../QuickTest.mscp";
 
