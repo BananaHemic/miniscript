@@ -334,7 +334,7 @@ namespace Miniscript {
         //    }
         //    return v;
         //}
-        //protected override void ResetState() { value = 666; }
+        protected override void ResetState() {}
 
         public override string ToString(TAC.Machine vm) {
 			// Convert to a string in the standard MiniScript way.
