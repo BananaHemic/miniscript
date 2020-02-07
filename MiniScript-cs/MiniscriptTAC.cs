@@ -414,10 +414,10 @@ namespace Miniscript {
 						Check.Type(opB, typeof(ValList), "list concatenation");
 						List<Value> list2 = ((ValList)opB).values;
 						if (list.Count + list2.Count > ValList.maxSize) throw new LimitExceededException("list too large");
-						List<Value> result = new List<Value>(list.Count + list2.Count);
+                        ValList result = ValList.Create(list.Count + list2.Count);
 						foreach (Value v in list) result.Add(context.ValueInContext(v));
 						foreach (Value v in list2) result.Add(context.ValueInContext(v));
-						return new ValList(result);
+						return result;
 					} else if (op == Op.ATimesB || op == Op.ADividedByB) {
 						// list replication (or division)
 						double factor = 0;
@@ -428,14 +428,14 @@ namespace Miniscript {
 							Check.Type(opB, typeof(ValNumber), "list division");
 							factor = 1.0 / ((ValNumber)opB).value;								
 						}
-						if (factor <= 0) return new ValList();
+						if (factor <= 0) return ValList.Create();
 						int finalCount = (int)(list.Count * factor);
 						if (finalCount > ValList.maxSize) throw new LimitExceededException("list too large");
-						List<Value> result = new List<Value>(finalCount);
+                        ValList result = ValList.Create(finalCount);
 						for (int i = 0; i < finalCount; i++) {
 							result.Add(list[i % list.Count]);
 						}
-						return new ValList(result);
+						return result;
 					} else if (op == Op.NotA) {
 						return ValNumber.Truth(!opA.BoolValue());
 					}
@@ -535,6 +535,7 @@ namespace Miniscript {
 			public List<Line> code;			// TAC lines we're executing
 			public int lineNum;				// next line to be executed
 			public ValMap variables;		// local variables for this call frame
+            //TODO outer vars should be ref'd 
 			public ValMap outerVars;		// variables of the context where this function was defined
 			public Stack<Value> args;		// pushed arguments for upcoming calls
 			public Context parent;			// parent (calling) context
@@ -616,6 +617,7 @@ namespace Miniscript {
 					throw new RuntimeException("can't assign to " + identifier);
 				}
 				if (variables == null) variables = ValMap.Create();
+                //TODO temp string
 				if (variables.assignOverride == null || !variables.assignOverride(new ValString(identifier), value)) {
                     // Cleanup existing variables, if applicable
                     if(variables.TryGetValue(identifier, out Value existing))
@@ -966,6 +968,7 @@ namespace Miniscript {
 					} else {
                         // The line.rhsA.Val doesn't call PoolableValue Val() when rhs is a ValVar, so we
                         // need to make sure to ref the value here
+                        //TODO we may want to just make ValVar do the Ref() instead
                         if(line.rhsA is ValVar)
                         {
                             PoolableValue poolableValue = funcVal as PoolableValue;

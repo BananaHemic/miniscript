@@ -513,22 +513,69 @@ namespace Miniscript {
 	/// ValList represents a MiniScript list (which, under the hood, is
 	/// just a wrapper for a List of Values).
 	/// </summary>
-	public class ValList : Value {
-		public static long maxSize = 0xFFFFFF;		// about 16 MB
-		
-		public List<Value> values;
+	public class ValList : PoolableValue {
+		public static long maxSize = 0xFFFFFF;      // about 16 MB
 
-		public ValList(List<Value> inputValues = null) {
-			this.values = inputValues == null ? new List<Value>() : inputValues;
+        public int Count { get { return values.Count; } }
+        public readonly List<Value> values;
+
+        public static ValList Create(int capacity=0)
+        {
+            PoolableValue poolable = GetInstance();
+            if(poolable != null)
+            {
+                ValList existing = poolable as ValList;
+                existing.EnsureCapacity(capacity);
+                return existing;
+            }
+
+            return new ValList(capacity, true);
+        }
+        private ValList(int capacity, bool poolable) : base(poolable) {
+            values = new List<Value>(capacity);
+		}
+        public void Add(Value value)
+        {
+            PoolableValue valPool = value as PoolableValue;
+            if (valPool != null)
+                valPool.Ref();
+            values.Add(value);
+        }
+        public void SetToList(List<Value> recvValues)
+        {
+            ResetState();
+            for(int i = 0; i < recvValues.Count;i++)
+            {
+                Value value = recvValues[i];
+                PoolableValue valPool = value as PoolableValue;
+                if (valPool != null)
+                    valPool.Ref();
+                values.Add(value);
+            }
+        }
+        public void EnsureCapacity(int capacity)
+        {
+            if (values.Capacity < capacity)
+                values.Capacity = capacity; //TODO maybe enfore this being a PoT?
+        }
+        protected override void ResetState()
+        {
             for(int i = 0; i < values.Count;i++)
             {
                 PoolableValue valPool = values[i] as PoolableValue;
                 if (valPool != null)
-                    valPool.Ref();
+                    valPool.Unref();
             }
-		}
-
-		public override Value FullEval(TAC.Context context) {
+            values.Clear();
+        }
+        public void Insert(int idx, Value value)
+        {
+            PoolableValue poolableValue = value as PoolableValue;
+            if (poolableValue != null)
+                poolableValue.Ref();
+            values.Insert(idx, value);
+        }
+        public override Value FullEval(TAC.Context context) {
 			// Evaluate each of our list elements, and if any of those is
 			// a variable or temp, then resolve those now.
 			// CAUTION: do not mutate our original list!  We may need
@@ -541,16 +588,16 @@ namespace Miniscript {
 					if (newVal != values[i]) {
 						// OK, something changed, so we're going to need a new copy of the list.
 						if (result == null) {
-							result = new ValList();
-							for (var j = 0; j < i; j++) result.values.Add(values[j]);
+							result = ValList.Create();
+							for (var j = 0; j < i; j++) result.Add(values[j]);
 						}
-						result.values.Add(newVal);
+						result.Add(newVal);
 						copied = true;
 					}
 				}
 				if (!copied && result != null) {
 					// No change; but we have new results to return, so copy it as-is
-					result.values.Add(values[i]);
+					result.Add(values[i]);
 				}
 			}
 			return result ?? this;
@@ -561,9 +608,10 @@ namespace Miniscript {
 			// This is used when a list literal appears in the source, to
 			// ensure that each time that code executes, we get a new, distinct
 			// mutable object, rather than the same object multiple times.
-			var result = new ValList();
+			var result = ValList.Create();
 			for (var i = 0; i < values.Count; i++) {
-				result.values.Add(values[i] == null ? null : values[i].Val(context));
+                //TODO this may be double Ref()ing
+				result.Add(values[i] == null ? null : values[i].Val(context));
 			}
 			return result;
 		}
@@ -628,10 +676,24 @@ namespace Miniscript {
 			if (i < 0 || i >= values.Count) {
 				throw new IndexException("Index Error (list index " + index + " out of range)");
 			}
+            // Unref existing
+            PoolableValue existing = values[i] as PoolableValue;
+            if (existing != null)
+                existing.Unref();
+            // Ref new
+            PoolableValue poolVal = value as PoolableValue;
+            if (poolVal != null)
+                poolVal.Ref();
 			values[i] = value;
 		}
-
-		public Value GetElem(Value index) {
+        public void RemoveAt(int i)
+        {
+            PoolableValue existing = values[i] as PoolableValue;
+            if (existing != null)
+                existing.Unref();
+            values.RemoveAt(i);
+        }
+        public Value GetElem(Value index) {
 			var i = index.IntValue();
 			if (i < 0) i += values.Count;
 			if (i < 0 || i >= values.Count) {
@@ -640,8 +702,22 @@ namespace Miniscript {
 			}
 			return values[i];
 		}
-
-	}
+        public Value this[int i]
+        {
+            get { return values[i]; }
+            set {
+                // Unref existing
+                PoolableValue existing = values[i] as PoolableValue;
+                if (existing != null)
+                    existing.Unref();
+                // Ref new
+                PoolableValue poolVal = value as PoolableValue;
+                if (poolVal != null)
+                    poolVal.Ref();
+                values[i] = value;
+            }
+        }
+    }
 	
 	/// <summary>
 	/// ValMap represents a MiniScript map, which under the hood is just a Dictionary

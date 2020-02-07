@@ -1054,17 +1054,17 @@ namespace Miniscript {
 			ExpressionParsingMethod nextLevel = ParseQuantity;
 			if (tokens.Peek().type != Token.Type.LSquare) return nextLevel(tokens, asLval, statementStart);
 			tokens.Dequeue();
-			// NOTE: we must be sure this list gets created at runtime, not here at parse time.
-			// Since it is an immutable object, we need to return a different one each time
-			// this code executes (in a loop, function, etc.).  So, we use Op.CopyA below!
-			ValList list = new ValList();
+            // NOTE: we must be sure this list gets created at runtime, not here at parse time.
+            // Since it is an immutable object, we need to return a different one each time
+            // this code executes (in a loop, function, etc.).  So, we use Op.CopyA below!
+            ValList list = ValList.Create();
 			if (tokens.Peek().type == Token.Type.RSquare) {
 				tokens.Dequeue();
 			} else while (true) {
 				AllowLineBreak(tokens); // allow a line break after a comma or open bracket
 
 				Value elem = ParseExpr(tokens);
-				list.values.Add(elem);
+				list.Add(elem);
 				if (RequireEitherToken(tokens, Token.Type.Comma, Token.Type.RSquare).type == Token.Type.RSquare) break;
 			}
 			if (statementStart) return list;	// return the list as-is for indexed assignment (foo[3]=42)

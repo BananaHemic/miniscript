@@ -381,23 +381,30 @@ namespace Miniscript {
 				Value self = context.GetVar("self");
 				if (self is ValMap) {
 					ValMap map = (ValMap)self;
-					List<Value> keys = new List<Value>(map.map.Keys);
-					for (int i = 0; i < keys.Count; i++) if (keys[i] is ValNull) keys[i] = null;
-					return new Intrinsic.Result(new ValList(keys));
+                    var keys = map.map.Keys;
+                    ValList list = ValList.Create(keys.Count);
+                    foreach(var key in keys)
+                    {
+                        if (key is ValNull)
+                            list.Add(null);
+                        else
+                            list.Add(key);
+                    }
+					return new Intrinsic.Result(list);
 				} else if (self is ValString) {
 					string str = ((ValString)self).value;
-					List<Value> indexes = new List<Value>(str.Length);
+                    ValList indexes = ValList.Create(str.Length);
 					for (int i = 0; i < str.Length; i++) {
 						indexes.Add(TAC.Num(i));
 					}
-					return new Intrinsic.Result(new ValList(indexes));
+					return new Intrinsic.Result(indexes);
 				} else if (self is ValList) {
 					List<Value> list = ((ValList)self).values;
-					List<Value> indexes = new List<Value>(list.Count);
+                    ValList indexes = ValList.Create(list.Count);
 					for (int i = 0; i < list.Count; i++) {
 						indexes.Add(TAC.Num(i));
 					}
-					return new Intrinsic.Result(new ValList(indexes));
+					return new Intrinsic.Result(indexes);
 				}
 				return Intrinsic.Result.Null;
 			};
@@ -465,7 +472,7 @@ namespace Miniscript {
 				if (!(index is ValNumber)) throw new RuntimeException("insert: number required for index argument");
 				int idx = index.IntValue();
 				if (self is ValList) {
-					List<Value> list = ((ValList)self).values;
+                    ValList list = self as ValList;
 					if (idx < 0) idx += list.Count + 1;	// +1 because we are inserting AND counting from the end.
 					Check.Range(idx, 0, list.Count);	// and allowing all the way up to .Count here, because insert.
 					list.Insert(idx, value);
@@ -491,8 +498,8 @@ namespace Miniscript {
 				string delim = context.GetVar("delimiter").ToString();
 				if (!(val is ValList)) return new Intrinsic.Result(val);
 				ValList src = (val as ValList);
-				List<string> list = new List<string>(src.values.Count);
-				for (int i=0; i<src.values.Count; i++) {
+				List<string> list = new List<string>(src.Count);
+				for (int i=0; i<src.Count; i++) {
 					if (src.values[i] == null) list.Add(null);
 					else list.Add(src.values[i].ToString());
 				}
@@ -506,8 +513,7 @@ namespace Miniscript {
 			f.code = (context, partialResult) => {
 				Value val = context.GetVar("self");
 				if (val is ValList) {
-					List<Value> list = ((ValList)val).values;
-					return new Intrinsic.Result(list.Count);
+					return new Intrinsic.Result(((ValList)val).Count);
 				} else if (val is ValString) {
 					string str = ((ValString)val).value;
 					return new Intrinsic.Result(str.Length);
@@ -592,7 +598,7 @@ namespace Miniscript {
 			f.code = (context, partialResult) => {
 				Value self = context.GetVar("self");
 				if (self is ValList) {
-					List<Value> list = ((ValList)self).values;
+                    ValList list = self as ValList;
 					if (list.Count < 1) return Intrinsic.Result.Null;
 					Value result = list[list.Count-1];
 					list.RemoveAt(list.Count-1);
@@ -614,7 +620,7 @@ namespace Miniscript {
 			f.code = (context, partialResult) => {
 				Value self = context.GetVar("self");
 				if (self is ValList) {
-					List<Value> list = ((ValList)self).values;
+                    ValList list = self as ValList;
 					if (list.Count < 1) return Intrinsic.Result.Null;
 					Value result = list[0];
 					list.RemoveAt(0);
@@ -638,7 +644,7 @@ namespace Miniscript {
 				Value self = context.GetVar("self");
 				Value value = context.GetVar("value");
 				if (self is ValList) {
-					List<Value> list = ((ValList)self).values;
+                    ValList list = self as ValList;
 					list.Add(value);
 					return new Intrinsic.Result(self);
 				} else if (self is ValMap) {
@@ -663,11 +669,11 @@ namespace Miniscript {
 				double step = (toVal >= fromVal ? 1 : -1);
 				if (p2 is ValNumber) step = (p2 as ValNumber).value;
 				if (step == 0) throw new RuntimeException("range() error (step==0)");
-				List<Value> values = new List<Value>();
 				int count = (int)((toVal - fromVal) / step) + 1;
 				if (count > ValList.maxSize) throw new RuntimeException("list too large");
+                ValList values = null;
 				try {
-					values = new List<Value>(count);
+                    values = ValList.Create(count);
 					for (double v = fromVal; step > 0 ? (v <= toVal) : (v >= toVal); v += step) {
 						values.Add(TAC.Num(v));
 					}
@@ -676,7 +682,7 @@ namespace Miniscript {
 					values = null;
 					throw(new LimitExceededException("range() error", e));
 				}
-				return new Intrinsic.Result(new ValList(values));
+				return new Intrinsic.Result(values);
 			};
 
 			// remove(self, key or index or substring)
@@ -701,9 +707,9 @@ namespace Miniscript {
 					if (k == null) throw new RuntimeException("argument to 'remove' must not be null");
 					ValList selfList = (ValList)self;
 					int idx = k.IntValue();
-					if (idx < 0) idx += selfList.values.Count;
-					Check.Range(idx, 0, selfList.values.Count-1);
-					selfList.values.RemoveAt(idx);
+					if (idx < 0) idx += selfList.Count;
+					Check.Range(idx, 0, selfList.Count-1);
+					selfList.RemoveAt(idx);
 					return Intrinsic.Result.Null;
 				} else if (self is ValString) {
 					if (k == null) throw new RuntimeException("argument to 'remove' must not be null");
@@ -761,7 +767,7 @@ namespace Miniscript {
 					while (true) {
 						idx = selfList.values.FindIndex(idx+1, x => x.Equality(oldval) == 1);
 						if (idx < 0) break;
-						selfList.values[idx] = newval;
+						selfList[idx] = newval;
 						count++;
 						if (maxCount > 0 && count == maxCount) break;
 					}
@@ -831,16 +837,16 @@ namespace Miniscript {
 				int toIdx = 0;
 				if (toVal != null) toIdx = toVal.IntValue();
 				if (seq is ValList) {
-					List<Value> list = ((ValList)seq).values;
+                    ValList list = seq as ValList;
 					if (fromIdx < 0) fromIdx += list.Count;
 					if (fromIdx < 0) fromIdx = 0;
 					if (toVal == null) toIdx = list.Count;
 					if (toIdx < 0) toIdx += list.Count;
 					if (toIdx > list.Count) toIdx = list.Count;
-					ValList slice = new ValList();
+					ValList slice = ValList.Create(toIdx - fromIdx);
 					if (fromIdx < list.Count && toIdx > fromIdx) {
 						for (int i = fromIdx; i < toIdx; i++) {
-							slice.values.Add(list[i]);
+							slice.Add(list[i]);
 						}
 					}
 					return new Intrinsic.Result(slice);
@@ -864,18 +870,20 @@ namespace Miniscript {
 			f.code = (context, partialResult) => {
 				Value self = context.GetVar("self");
 				ValList list = self as ValList;
-				if (list == null || list.values.Count < 2) return new Intrinsic.Result(self);
+				if (list == null || list.Count < 2) return new Intrinsic.Result(self);
 				
 				Value byKey = context.GetVar("byKey");
 				if (byKey == null) {
 					// Simple case: sort the values as themselves
-					list.values = list.values.OrderBy((arg) => arg, ValueSorter.instance).ToList();
+					List<Value> sortedValues = list.values.OrderBy((arg) => arg, ValueSorter.instance).ToList();
+                    list.SetToList(sortedValues);
 				} else {
 					// Harder case: sort by a key.
-					int count = list.values.Count;
+					int count = list.Count;
 					KeyedValue[] arr = new KeyedValue[count];
 					for (int i=0; i<count; i++) {
-						arr[i].value = list.values[i];
+                        //TODO we may need to Ref() here
+						arr[i].value = list[i];
 						//arr[i].valueIndex = i;
 					}
 					// The key for each item will be the item itself, unless it is a map, in which
@@ -883,11 +891,11 @@ namespace Miniscript {
 					// index is an integer.)
 					int byKeyInt = byKey.IntValue();
 					for (int i=0; i<count; i++) {
-						Value item = list.values[i];
+						Value item = list[i];
 						if (item is ValMap) arr[i].sortKey = ((ValMap)item).Lookup(byKey);
 						else if (item is ValList) {
 							ValList itemList = (ValList)item;
-							if (byKeyInt > -itemList.values.Count && byKeyInt < itemList.values.Count) arr[i].sortKey = itemList.values[byKeyInt];
+							if (byKeyInt > -itemList.Count && byKeyInt < itemList.Count) arr[i].sortKey = itemList[byKeyInt];
 							else arr[i].sortKey = null;
 						}
 					}
@@ -896,7 +904,7 @@ namespace Miniscript {
 					// And finally, convert that back into our list
 					int idx=0;
 					foreach (KeyedValue kv in sortedArr) {
-						list.values[idx++] = kv.value;
+						list[idx++] = kv.value;
 					}
 				}
 				return new Intrinsic.Result(list);
@@ -911,17 +919,17 @@ namespace Miniscript {
 				string self = context.GetVar("self").ToString();
 				string delim = context.GetVar("delimiter").ToString();
 				int maxCount = context.GetVar("maxCount").IntValue();
-				ValList result = new ValList();
+				ValList result = ValList.Create();
 				int pos = 0;
 				while (pos < self.Length) {
 					int nextPos;
-					if (maxCount >= 0 && result.values.Count == maxCount - 1) nextPos = self.Length;
+					if (maxCount >= 0 && result.Count == maxCount - 1) nextPos = self.Length;
 					else if (delim.Length == 0) nextPos = pos+1;
 					else nextPos = self.IndexOf(delim, pos, StringComparison.InvariantCulture);
 					if (nextPos < 0) nextPos = self.Length;
-					result.values.Add(new ValString(self.Substring(pos, nextPos - pos)));
+					result.Add(new ValString(self.Substring(pos, nextPos - pos)));
 					pos = nextPos + delim.Length;
-					if (pos == self.Length && delim.Length > 0) result.values.Add(ValString.empty);
+					if (pos == self.Length && delim.Length > 0) result.Add(ValString.empty);
 				}
 				return new Intrinsic.Result(result);
 			};
@@ -1051,15 +1059,17 @@ namespace Miniscript {
                 Value self = context.GetVar("self");
                 if (self is ValMap) {
                     ValMap map = (ValMap)self;
-                    List<Value> values = new List<Value>(map.map.Values);
-                    return new Intrinsic.Result(new ValList(values));
+                    ValList values = ValList.Create(map.map.Values.Count);
+                    foreach(var v in map.map.Values)
+                        values.Add(v);
+                    return new Intrinsic.Result(values);
                 } else if (self is ValString) {
                     string str = ((ValString)self).value;
-                    List<Value> values = new List<Value>(str.Length);
+                    ValList values = ValList.Create(str.Length);
                     for (int i = 0; i < str.Length; i++) {
                         values.Add(TAC.Str(str[i].ToString()));
                     }
-                    return new Intrinsic.Result(new ValList(values));
+                    return new Intrinsic.Result(values);
                 }
                 return new Intrinsic.Result(self);
             };
