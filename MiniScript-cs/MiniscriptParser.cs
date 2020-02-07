@@ -957,7 +957,7 @@ namespace Miniscript {
 					// the previous part of the sequence, so we can build on it.
 					val = FullyEvaluate(val);
 					// Now build the lookup.
-					val = new ValSeqElem(val, new ValString(nextIdent.text));
+					val = new ValSeqElem(val, ValString.Create(nextIdent.text));
 					if (tokens.Peek().type == Token.Type.LParen && !tokens.Peek().afterSpace) {
 						// If this new element is followed by parens, we need to
 						// parse it as a call right away.
@@ -1119,7 +1119,7 @@ namespace Miniscript {
 				if (double.TryParse(tok.text, NumberStyles.Number, CultureInfo.InvariantCulture, out d)) return ValNumber.Create(d);
 				throw new CompilerException("invalid numeric literal: " + tok.text);
 			} else if (tok.type == Token.Type.String) {
-				return new ValString(tok.text);
+				return ValString.Create(tok.text);
 			} else if (tok.type == Token.Type.Identifier) {
 				return new ValVar(tok.text);
 			} else if (tok.type == Token.Type.Keyword) {

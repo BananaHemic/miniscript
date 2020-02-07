@@ -135,10 +135,10 @@ namespace Miniscript {
 			if (string.IsNullOrEmpty(defaultValue)) defVal = ValString.empty;
 			else if (defaultValue == "__isa") defVal = ValString.magicIsA;
 			else if (defaultValue == "self") defVal = _self;
-			else defVal = new ValString(defaultValue);
+			else defVal = ValString.Create(defaultValue);
 			function.parameters.Add(new Function.Param(name, defVal));
 		}
-		ValString _self = new ValString("self");
+        ValString _self = ValString.selfStr;
 		
 		/// <summary>
 		/// GetFunc is used internally by the compiler to get the MiniScript function
@@ -198,7 +198,7 @@ namespace Miniscript {
 			public Result(string resultStr) {
 				this.done = true;
 				if (string.IsNullOrEmpty(resultStr)) this.result = ValString.empty;
-				else this.result = new ValString(resultStr);
+				else this.result = ValString.Create(resultStr);
 			}
 			
 			/// <summary>
@@ -927,7 +927,7 @@ namespace Miniscript {
 					else if (delim.Length == 0) nextPos = pos+1;
 					else nextPos = self.IndexOf(delim, pos, StringComparison.InvariantCulture);
 					if (nextPos < 0) nextPos = self.Length;
-					result.Add(new ValString(self.Substring(pos, nextPos - pos)));
+					result.Add(ValString.Create(self.Substring(pos, nextPos - pos)));
 					pos = nextPos + delim.Length;
 					if (pos == self.Length && delim.Length > 0) result.Add(ValString.empty);
 				}
@@ -1079,7 +1079,7 @@ namespace Miniscript {
 			f.code = (context, partialResult) => {
 				if (context.vm.versionMap == null) {
 					var d = ValMap.Create();
-					d["miniscript"] = new ValString("1.5");
+					d["miniscript"] = ValString.Create("1.5");
 			
 					// Getting the build date is annoyingly hard in C#.
 					// This will work if the assembly.cs file uses the version format: 1.0.*
@@ -1088,11 +1088,11 @@ namespace Miniscript {
 					buildDate = new DateTime(2000, 1, 1);
 					buildDate = buildDate.AddDays(version.Build);
 					buildDate = buildDate.AddSeconds(version.Revision * 2);
-					d["buildDate"] = new ValString(buildDate.ToString("yyyy-MM-dd"));
+					d["buildDate"] = ValString.Create(buildDate.ToString("yyyy-MM-dd"));
 
 					d["host"] = ValNumber.Create(HostInfo.version);
-					d["hostName"] = new ValString(HostInfo.name);
-					d["hostInfo"] = new ValString(HostInfo.info);
+					d["hostName"] = ValString.Create(HostInfo.name);
+					d["hostInfo"] = ValString.Create(HostInfo.info);
 
 					context.vm.versionMap = d;
 				}

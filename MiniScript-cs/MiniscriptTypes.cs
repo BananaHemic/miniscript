@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
+using System.Text;
 
 namespace Miniscript {
 	
@@ -164,6 +165,26 @@ namespace Miniscript {
 		}
 	}
 
+    public class ValuePool<T> where T : PoolableValue
+    {
+        private readonly Stack<T> _pool = new Stack<T>();
+
+        public T GetInstance()
+        {
+            if (_pool.Count == 0)
+                return null;
+            //Console.WriteLine("from pool");
+            T val = _pool.Pop();
+            // TODO sometimes we create a Value and immediately assign it to
+            // a map. In this case, the ref count here should be 0!
+            return val;
+        }
+        public void ReturnToPool(T poolableValue)
+        {
+            _pool.Push(poolableValue);
+        }
+    }
+
     /// <summary>
     /// In certain platforms, like Unity, memory allocation can
     /// be very slow. To help alleviate this, Minscript values
@@ -171,9 +192,6 @@ namespace Miniscript {
     /// </summary>
     public abstract class PoolableValue : Value
     {
-        [ThreadStatic]
-        private static Stack<PoolableValue> _pool;
-
         protected int _refCount = 1;
         protected readonly bool _poolable;
 
@@ -181,16 +199,8 @@ namespace Miniscript {
         {
             _poolable = usePool;
         }
-        protected static PoolableValue GetInstance()
-        {
-            if (_pool == null || _pool.Count == 0)
-                return null;
-            //Console.WriteLine("from pool");
-            PoolableValue val = _pool.Pop();
-            val._refCount = 1;
-            return val;
-        }
         protected abstract void ResetState();
+        protected abstract void ReturnToPool();
         public virtual void Ref()
         {
             if (_poolable)
@@ -208,11 +218,11 @@ namespace Miniscript {
             _refCount--;
             if (_refCount > 0)
                 return;
-            if (_pool == null)
-                _pool = new Stack<PoolableValue>();
-            this.ResetState();
-            //Console.WriteLine("into pool");
-            _pool.Push(this);
+            else if (_refCount < 0)
+                Console.WriteLine("Extra unref! For " + GetType().ToString());
+            ResetState();
+            ReturnToPool();
+            Console.WriteLine("into pool " + GetType().ToString());
         }
         public override Value Val(TAC.Context context)
         {
@@ -301,17 +311,25 @@ namespace Miniscript {
 	/// </summary>
 	public class ValNumber : PoolableValue {
 		public double value { get; private set; }
+        [ThreadStatic]
+        protected static ValuePool<ValNumber> _valuePool;
 
 		private ValNumber(double value, bool usePool) : base(usePool) {
 			this.value = value;
 		}
         public static ValNumber Create(double value)
         {
-            ValNumber val = GetInstance() as ValNumber;
-            if (val != null)
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValNumber>();
+            else
             {
-                val.value = value;
-                return val;
+                ValNumber val = _valuePool.GetInstance();
+                if (val != null)
+                {
+                    val._refCount = 1;
+                    val.value = value;
+                    return val;
+                }
             }
             return new ValNumber(value, true);
         }
@@ -335,6 +353,14 @@ namespace Miniscript {
         //    return v;
         //}
         protected override void ResetState() {}
+        protected override void ReturnToPool()
+        {
+            if (!base._poolable)
+                return;
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValNumber>();
+            _valuePool.ReturnToPool(this);
+        }
 
         public override string ToString(TAC.Machine vm) {
 			// Convert to a string in the standard MiniScript way.
@@ -418,21 +444,80 @@ namespace Miniscript {
 	/// <summary>
 	/// ValString represents a string (text) value.
 	/// </summary>
-	public class ValString : Value {
+	public class ValString : PoolableValue {
 		public static long maxSize = 0xFFFFFF;		// about 16M elements
 		
-		public string value;
+		public string value { get; protected set; }
+        [ThreadStatic]
+        protected static ValuePool<ValString> _valuePool;
+        [ThreadStatic]
+        private static StringBuilder _workingSbA;
+        [ThreadStatic]
+        private static StringBuilder _workingSbB;
 
-		public ValString(string value) {
+        //TODO add create with ValString for fast add
+        public static ValString Create(string val, bool usePool=true) {
+            if(!usePool)
+                return new ValString(val, false);
+
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValString>();
+            else
+            {
+                ValString valStr = _valuePool.GetInstance();
+                if (valStr != null)
+                {
+                    valStr._refCount = 1;
+                    valStr.value = val;
+                    return valStr;
+                }
+            }
+
+            return new ValString(val, true);
+        }
+		protected ValString(string value, bool usePool) : base(usePool) {
 			this.value = value ?? _empty.value;
+            //base._refCount = 0;
 		}
+        public override void Unref()
+        {
+            base.Unref();
+            //Console.WriteLine("Str unref, ref count #" + _refCount);
+        }
+        protected override void ResetState()
+        {
+            value = null;
+            Console.WriteLine("Str back in pool");
+        }
+        protected override void ReturnToPool()
+        {
+            if (!base._poolable)
+                return;
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValString>();
+            _valuePool.ReturnToPool(this);
+        }
 
-		public override string ToString(TAC.Machine vm) {
+        public override string ToString(TAC.Machine vm) {
 			return value;
 		}
 
 		public override string CodeForm(TAC.Machine vm, int recursionLimit=-1) {
-			return "\"" + value.Replace("\"", "\"\"") + "\"";
+            if (_workingSbA == null)
+                _workingSbA = new StringBuilder();
+            else
+                _workingSbA.Clear();
+            if (_workingSbB == null)
+                _workingSbB = new StringBuilder();
+            else
+                _workingSbB.Clear();
+            _workingSbA.Append("\"");
+            _workingSbB.Append(value);
+            _workingSbB.Replace("\"", "\"\"");
+            _workingSbA.Append(_workingSbB);
+            _workingSbA.Append("\"");
+            return _workingSbA.ToString();
+			//return "\"" + value.Replace("\"", "\"\"") + "\"";
 		}
 
 		public override bool BoolValue() {
@@ -460,13 +545,15 @@ namespace Miniscript {
 				throw new IndexException("Index Error (string index " + index + " out of range)");
 
 			}
-			return new ValString(value.Substring(i, 1));
+			return ValString.Create(value.Substring(i, 1));
 		}
 
 		// Magic identifier for the is-a entry in the class system:
-		public static ValString magicIsA = new ValString("__isa");
+		public static ValString magicIsA = new ValString("__isa", false);
+
+		public static ValString selfStr = new ValString("self", false);
 		
-		static ValString _empty = new ValString("");
+		static ValString _empty = new ValString("", false);
 		
 		/// <summary>
 		/// Handy accessor for an empty ValString.
@@ -482,7 +569,7 @@ namespace Miniscript {
 	class TempValString : ValString {
 		private TempValString next;
 
-		private TempValString(string s) : base(s) {
+		private TempValString(string s) : base(s, false) {
 			this.next = null;
 		}
 
@@ -518,15 +605,22 @@ namespace Miniscript {
 
         public int Count { get { return values.Count; } }
         public readonly List<Value> values;
+        [ThreadStatic]
+        private static ValuePool<ValList> _valuePool;
 
         public static ValList Create(int capacity=0)
         {
-            PoolableValue poolable = GetInstance();
-            if(poolable != null)
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValList>();
+            else
             {
-                ValList existing = poolable as ValList;
-                existing.EnsureCapacity(capacity);
-                return existing;
+                ValList existing = _valuePool.GetInstance();
+                if(existing != null)
+                {
+                    existing._refCount = 1;
+                    existing.EnsureCapacity(capacity);
+                    return existing;
+                }
             }
 
             return new ValList(capacity, true);
@@ -566,7 +660,16 @@ namespace Miniscript {
                 if (valPool != null)
                     valPool.Unref();
             }
+            //Console.WriteLine("ValList back in pool");
             values.Clear();
+        }
+        protected override void ReturnToPool()
+        {
+            if (!base._poolable)
+                return;
+            if (_valuePool != null)
+                _valuePool = new ValuePool<ValList>();
+            _valuePool.ReturnToPool(this);
         }
         public void Insert(int idx, Value value)
         {
@@ -730,6 +833,8 @@ namespace Miniscript {
 		// the assignment, or false to allow it to happen as normal.
 		public delegate bool AssignOverrideFunc(Value key, Value value);
 		public AssignOverrideFunc assignOverride;
+        [ThreadStatic]
+        protected static ValuePool<ValMap> _valuePool;
 
 		private ValMap(bool usePool) : base(usePool) {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
@@ -738,12 +843,28 @@ namespace Miniscript {
         {
             map.Clear();
         }
+        protected override void ReturnToPool()
+        {
+            if (!base._poolable)
+                return;
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValMap>();
+            _valuePool.ReturnToPool(this);
+        }
         public static ValMap Create()
         {
-            ValMap valMap = GetInstance() as ValMap;
-            if (valMap == null)
-                valMap = new ValMap(true);
-            return valMap;
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValMap>();
+            else
+            {
+                ValMap valMap = _valuePool.GetInstance();
+                if (valMap != null)
+                {
+                    valMap._refCount = 1;
+                    return valMap;
+                }
+            }
+            return new ValMap(true);
         }
 		
 		public override bool BoolValue() {
@@ -809,7 +930,14 @@ namespace Miniscript {
 				TempValString.Release(idVal);
 				return result;
 			}
-			set { map[new ValString(identifier)] = value; }
+			set {
+                //ValString valStr = ValString.Create(identifier);
+                map[ValString.Create(identifier)] = value;
+                //valStr.Unref();
+                //ValString valStr = ValString.Create(identifier);
+                //map[valStr] = value;
+                //valStr.Unref();
+            }
 		}
 		
 		/// <summary>
@@ -1010,8 +1138,8 @@ namespace Miniscript {
 			return result;
 		}
 
-        static ValString keyStr = new ValString("key");
-		static ValString valStr = new ValString("value");
+        static ValString keyStr = ValString.Create("key", false);
+		static ValString valStr = ValString.Create("value", false);
 
 	}
 	

@@ -246,7 +246,7 @@ namespace Miniscript {
 					string sA = opA.ToString(context.vm);
 					string sB = opB.ToString(context.vm);
 					if (sA.Length + sB.Length > ValString.maxSize) throw new LimitExceededException("string too large");
-					return new ValString(sA + sB);
+					return ValString.Create(sA + sB);
 				}
 
 				if (opA is ValNumber) {
@@ -351,13 +351,13 @@ namespace Miniscript {
 						for (int i = 0; i < repeats; i++) result.Append(sA);
 						int extraChars = (int)(sA.Length * (factor - repeats));
 						if (extraChars > 0) result.Append(sA.Substring(0, extraChars));
-						return new ValString(result.ToString());						
+						return ValString.Create(result.ToString());						
 					}
 					if (op == Op.ElemBofA || op == Op.ElemBofIterA) {
 						int idx = opB.IntValue();
 						Check.Range(idx, -sA.Length, sA.Length - 1, "string index");
 						if (idx < 0) idx += sA.Length;
-						return new ValString(sA.Substring(idx, 1));
+						return ValString.Create(sA.Substring(idx, 1));
 					}
 					if (opB == null || opB is ValString) {
 						string sB = (opB == null ? null : opB.ToString(context.vm));
@@ -365,7 +365,7 @@ namespace Miniscript {
 							case Op.AMinusB: {
 									if (opB == null) return opA;
 									if (sA.EndsWith(sB)) sA = sA.Substring(0, sA.Length - sB.Length);
-									return new ValString(sA);
+									return ValString.Create(sA);
 								}
 							case Op.NotA:
 								return ValNumber.Truth(string.IsNullOrEmpty(sA));
@@ -617,10 +617,10 @@ namespace Miniscript {
 					throw new RuntimeException("can't assign to " + identifier);
 				}
 				if (variables == null) variables = ValMap.Create();
-                //TODO temp string
-				if (variables.assignOverride == null || !variables.assignOverride(new ValString(identifier), value)) {
+                var identifierStr = TempValString.Get(identifier);
+				if (variables.assignOverride == null || !variables.assignOverride(identifierStr, value)) {
                     // Cleanup existing variables, if applicable
-                    if(variables.TryGetValue(identifier, out Value existing))
+                    if (variables.TryGetValue(identifier, out Value existing))
                     {
                         PoolableValue poolableValue = existing as PoolableValue;
                         //if (poolableValue != null && existing != value)
@@ -636,8 +636,9 @@ namespace Miniscript {
                             poolableValue.Unref();
                         }
                     }
-					variables[identifier] = value;
-				}
+                    variables[identifier] = value;
+                }
+                TempValString.Release(identifierStr);
 			}
 			
 			/// <summary>
@@ -1042,7 +1043,7 @@ namespace Miniscript {
 			return ValNumber.Create(value);
 		}
 		public static ValString Str(string value) {
-			return new ValString(value);
+			return ValString.Create(value);
 		}
 		public static ValNumber IntrinsicByName(string name) {
 			return ValNumber.Create(Intrinsic.GetByName(name).id);

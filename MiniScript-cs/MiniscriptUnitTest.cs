@@ -48,7 +48,7 @@ namespace Miniscript {
         public static void TestValMapPooling()
         {
             ValMap map = ValMap.Create();
-            map["test1"] = new ValString("original");
+            map["test1"] = ValString.Create("original");
             map.Unref();
             ValMap newMap = ValMap.Create();
             if(newMap.TryGetValue("test1", out Value val))
