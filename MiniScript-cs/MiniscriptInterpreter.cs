@@ -176,7 +176,7 @@ namespace Miniscript {
 				while (!vm.done && !vm.yielding) {
 					if (vm.runTime - startTime > timeLimit) return;	// time's up for now!
 					vm.Step();		// update the machine
-					if (returnEarly && vm.GetTopContext().partialResult != null) return;	// waiting for something
+					if (returnEarly && vm.GetTopContext().partialResult.IsAssigned) return;	// waiting for something
 				}
 			} catch (MiniscriptException mse) {
 				ReportError(mse);

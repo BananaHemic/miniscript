@@ -55,14 +55,14 @@ namespace Miniscript {
 		// static map from Values to short names, used when displaying lists/maps;
 		// feel free to add to this any values (especially lists/maps) provided
 		// by your own intrinsics.
-		public static Dictionary<Value, string> shortNames = new Dictionary<Value, string>();
+		public readonly static Dictionary<Value, string> shortNames = new Dictionary<Value, string>();
 
 		private Function function;
 		private ValFunction valFunction;	// (cached wrapper for function)
 		int numericID;		// also its index in the 'all' list
 
-		static List<Intrinsic> all = new List<Intrinsic>() { null };
-		static Dictionary<string, Intrinsic> nameMap = new Dictionary<string, Intrinsic>();
+		readonly static List<Intrinsic> all = new List<Intrinsic>() { null };
+		readonly static Dictionary<string, Intrinsic> nameMap = new Dictionary<string, Intrinsic>();
 		
 		/// <summary>
 		/// Factory method to create a new Intrinsic, filling out its name as given,
@@ -170,9 +170,10 @@ namespace Miniscript {
 		/// If it's not done, set done=false, and store any partial result in result (and 
 		/// then your intrinsic will get invoked with this Result passed in as partialResult).
 		/// </summary>
-		public class Result {
-			public bool done;		// true if our work is complete; false if we need to Continue
-			public Value result;	// final result if done; in-progress data if not done
+		public struct Result {
+			public readonly bool done;		// true if our work is complete; false if we need to Continue
+			public readonly Value result;	// final result if done; in-progress data if not done
+            public readonly bool IsAssigned; // Let's us see if this is a null struct
 			
 			/// <summary>
 			/// Result constructor taking a Value, and an optional done flag.
@@ -182,6 +183,7 @@ namespace Miniscript {
 			public Result(Value result, bool done=true) {
 				this.done = done;
 				this.result = result;
+                this.IsAssigned = true;
 			}
 
 			/// <summary>
@@ -190,6 +192,7 @@ namespace Miniscript {
 			public Result(double resultNum) {
 				this.done = true;
 				this.result = ValNumber.Create(resultNum);
+                this.IsAssigned = true;
 			}
 
 			/// <summary>
@@ -199,38 +202,39 @@ namespace Miniscript {
 				this.done = true;
 				if (string.IsNullOrEmpty(resultStr)) this.result = ValString.empty;
 				else this.result = ValString.Create(resultStr);
+                this.IsAssigned = true;
 			}
 			
 			/// <summary>
 			/// Result.Null: static Result representing null (no value).
 			/// </summary>
 			public static Result Null { get { return _null; } }
-			static Result _null = new Result(null, true);
+			readonly static Result _null = new Result(null, true);
 			
 			/// <summary>
 			/// Result.EmptyString: static Result representing "" (empty string).
 			/// </summary>
 			public static Result EmptyString { get { return _emptyString; } }
-			static Result _emptyString = new Result(ValString.empty);
+			readonly static Result _emptyString = new Result(ValString.empty);
 			
 			/// <summary>
 			/// Result.True: static Result representing true (1.0).
 			/// </summary>
 			public static Result True { get { return _true; } }
-			static Result _true = new Result(ValNumber.one, true);
+			readonly static Result _true = new Result(ValNumber.one, true);
 			
 			/// <summary>
 			/// Result.True: static Result representing false (0.0).
 			/// </summary>
 			public static Result False { get { return _false; } }
-			static Result _false = new Result(ValNumber.zero, true);
+			readonly static Result _false = new Result(ValNumber.zero, true);
 			
 			/// <summary>
 			/// Result.Waiting: static Result representing a need to wait,
 			/// with no in-progress value.
 			/// </summary>
 			public static Result Waiting { get { return _waiting; } }
-			static Result _waiting = new Result(null, false);
+			readonly static Result _waiting = new Result(null, false);
 		}
 	}
 	
@@ -1110,7 +1114,7 @@ namespace Miniscript {
 			f.AddParam("seconds", 1);
 			f.code = (context, partialResult) => {
 				double now = context.vm.runTime;
-				if (partialResult == null) {
+				if (!partialResult.IsAssigned) {
 					// Just starting our wait; calculate end time and return as partial result
 					double interval = context.GetVar("seconds").DoubleValue();
 					return new Intrinsic.Result(ValNumber.Create(now + interval), false);

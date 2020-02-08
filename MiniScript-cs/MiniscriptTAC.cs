@@ -279,7 +279,7 @@ namespace Miniscript {
 						// Op.CallFunction, so it got a parameter context at that time.)
 						Intrinsic.Result result = Intrinsic.Execute((int)fA, context, context.partialResult);
 						if (result.done) {
-							context.partialResult = null;
+							context.partialResult = default(Intrinsic.Result);
 							return result.result;
 						}
 						// OK, this intrinsic function is not yet done with its work.
