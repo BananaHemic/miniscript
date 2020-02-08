@@ -587,9 +587,10 @@ namespace Miniscript {
                 {
                     Context c = _pool.Pop();
                     c.code = code;
-                    //Console.WriteLine("Using pooled context");
+                    //Console.WriteLine("Using pooled context. Num left " + _pool.Count);
                     return c;
                 }
+                //Console.WriteLine("Making ctx");
                 return new Context(code);
             }
 			private Context(List<Line> code) {
@@ -612,6 +613,7 @@ namespace Miniscript {
                 if (_pool == null)
                     _pool = new Stack<Context>();
                 _pool.Push(this);
+                //Console.WriteLine("ctx push");
             }
 			
 			/// <summary>
@@ -809,7 +811,7 @@ namespace Miniscript {
 			/// <param name="gotSelf">Whether this method was called with dot syntax.</param> 
 			/// <param name="resultStorage">Value to stuff the result into when done.</param>
 			public Context NextCallContext(Function func, int argCount, bool gotSelf, Value resultStorage) {
-				Context result = new Context(func.code);
+				Context result = Context.Create(func.code);
 
 				result.code = func.code;
 				result.resultStorage = resultStorage;
