@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
+using System.Text;
 
 namespace Miniscript {
 	/// <summary>
@@ -246,6 +247,8 @@ namespace Miniscript {
 	public static class Intrinsics {
 
 		static bool initialized;
+        [ThreadStatic]
+        private static StringBuilder _workingStringBuilder;
 	
 		private struct KeyedValue {
 			public Value sortKey;
@@ -502,13 +505,21 @@ namespace Miniscript {
 				string delim = context.GetVar("delimiter").ToString();
 				if (!(val is ValList)) return new Intrinsic.Result(val);
 				ValList src = (val as ValList);
-				List<string> list = new List<string>(src.Count);
+                if (_workingStringBuilder == null)
+                    _workingStringBuilder = new StringBuilder();
+                else
+                    _workingStringBuilder.Clear();
+				//List<string> list = new List<string>(src.Count);
 				for (int i=0; i<src.Count; i++) {
-					if (src.values[i] == null) list.Add(null);
-					else list.Add(src.values[i].ToString());
+                    if (src.values[i] == null)
+                        _workingStringBuilder.Append("null");
+                    else
+                        _workingStringBuilder.Append(src.values[i].ToString());
+                    if (i != src.Count - 1)
+                        _workingStringBuilder.Append(delim);
 				}
-				string result = string.Join(delim, list.ToArray());
-				return new Intrinsic.Result(result);
+				//string result = string.Join(delim, list.ToArray());
+				return new Intrinsic.Result(_workingStringBuilder.ToString());
 			};
 			
 			// self.len
@@ -884,6 +895,7 @@ namespace Miniscript {
 				} else {
 					// Harder case: sort by a key.
 					int count = list.Count;
+                    //TODO we can probably optimize this away
 					KeyedValue[] arr = new KeyedValue[count];
 					for (int i=0; i<count; i++) {
                         //TODO we may need to Ref() here

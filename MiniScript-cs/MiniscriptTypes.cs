@@ -1239,7 +1239,7 @@ namespace Miniscript {
 				throw new IndexException("index " + index + " out of range for map");
 			}
 			Value key = keys.ElementAt<Value>(index);   // (TODO: consider more efficient methods here)
-			var result = new ValMap(true);
+			var result = ValMap.Create();
 			result.map[keyStr] = (key is ValNull ? null : key);
 			result.map[valStr] = map[key];
 			return result;
@@ -1281,6 +1281,8 @@ namespace Miniscript {
 	/// to be a function.)
 	/// </summary>
 	public class Function {
+        [ThreadStatic]
+        private static StringBuilder _workingStringBuilder;
 		/// <summary>
 		/// Param: helper class representing a function parameter.
 		/// </summary>
@@ -1306,15 +1308,18 @@ namespace Miniscript {
 		}
 
 		public string ToString(TAC.Machine vm) {
-			var s = new System.Text.StringBuilder();
-			s.Append("FUNCTION(");			
+            if (_workingStringBuilder == null)
+                _workingStringBuilder = new StringBuilder();
+            else
+                _workingStringBuilder.Clear();
+			_workingStringBuilder.Append("FUNCTION(");			
 			for (var i=0; i < parameters.Count(); i++) {
-				if (i > 0) s.Append(", ");
-				s.Append(parameters[i].name);
-				if (parameters[i].defaultValue != null) s.Append("=" + parameters[i].defaultValue.CodeForm(vm));
+				if (i > 0) _workingStringBuilder.Append(", ");
+				_workingStringBuilder.Append(parameters[i].name);
+				if (parameters[i].defaultValue != null) _workingStringBuilder.Append("=" + parameters[i].defaultValue.CodeForm(vm));
 			}
-			s.Append(")");
-			return s.ToString();
+			_workingStringBuilder.Append(")");
+			return _workingStringBuilder.ToString();
 		}
 	}
 	

@@ -13,10 +13,14 @@ deal with it directly (see MiniscriptInterpreter instead).
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Miniscript {
 
 	public static class TAC {
+
+        [ThreadStatic]
+        private static StringBuilder _workingStringBuilder;
 
 		public class Line {
 			public enum Op {
@@ -347,11 +351,14 @@ namespace Miniscript {
 						int repeats = (int)factor;
 						if (repeats < 0) return ValString.empty;
 						if (repeats * sA.Length > ValString.maxSize) throw new LimitExceededException("string too large");
-						var result = new System.Text.StringBuilder();
-						for (int i = 0; i < repeats; i++) result.Append(sA);
+                        if (_workingStringBuilder == null)
+                            _workingStringBuilder = new StringBuilder();
+                        else
+                            _workingStringBuilder.Clear();
+						for (int i = 0; i < repeats; i++) _workingStringBuilder.Append(sA);
 						int extraChars = (int)(sA.Length * (factor - repeats));
-						if (extraChars > 0) result.Append(sA.Substring(0, extraChars));
-						return ValString.Create(result.ToString());						
+						if (extraChars > 0) _workingStringBuilder.Append(sA.Substring(0, extraChars));
+						return ValString.Create(_workingStringBuilder.ToString());						
 					}
 					if (op == Op.ElemBofA || op == Op.ElemBofIterA) {
 						int idx = opB.IntValue();
