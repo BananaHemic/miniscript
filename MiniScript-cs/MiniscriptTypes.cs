@@ -608,6 +608,8 @@ namespace Miniscript {
         public readonly List<Value> values;
         [ThreadStatic]
         private static ValuePool<ValList> _valuePool;
+        [ThreadStatic]
+        private static StringBuilder _workingStringBuilder;
 
         public static ValList Create(int capacity=0)
         {
@@ -726,12 +728,19 @@ namespace Miniscript {
 				string shortName = vm.FindShortName(this);
 				if (shortName != null) return shortName;
 			}
-			var strs = new string[values.Count];
+            if (_workingStringBuilder == null)
+                _workingStringBuilder = new StringBuilder();
+            else
+                _workingStringBuilder.Clear();
+            _workingStringBuilder.Append("[");
 			for (var i = 0; i < values.Count; i++) {
-				if (values[i] == null) strs[i] = "null";
-				else strs[i] = values[i].CodeForm(vm, recursionLimit - 1);
+                Value val = values[i];
+                _workingStringBuilder.Append(val == null ? "null" : val.CodeForm(vm, recursionLimit - 1));
+                if (i != values.Count - 1)
+                    _workingStringBuilder.Append(", ");
 			}
-			return "[" + string.Join(", ", strs) + "]";
+            _workingStringBuilder.Append("]");
+            return _workingStringBuilder.ToString();
 		}
 
 		public override string ToString(TAC.Machine vm) {
@@ -836,6 +845,8 @@ namespace Miniscript {
 		public AssignOverrideFunc assignOverride;
         [ThreadStatic]
         protected static ValuePool<ValMap> _valuePool;
+        [ThreadStatic]
+        private static StringBuilder _workingStringBuilder;
 
 		private ValMap(bool usePool) : base(usePool) {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
@@ -1105,15 +1116,24 @@ namespace Miniscript {
 				string shortName = vm.FindShortName(this);
 				if (shortName != null) return shortName;
 			}
-			var strs = new string[map.Count];
+            if (_workingStringBuilder == null)
+                _workingStringBuilder = new StringBuilder();
+            else
+                _workingStringBuilder.Clear();
+            _workingStringBuilder.Append("{");
 			int i = 0;
 			foreach (KeyValuePair<Value, Value> kv in map) {
 				int nextRecurLimit = recursionLimit - 1;
-				if (kv.Key == ValString.magicIsA) nextRecurLimit = 1;
-				strs[i++] = string.Format("{0}: {1}", kv.Key.CodeForm(vm, nextRecurLimit), 
-					kv.Value == null ? "null" : kv.Value.CodeForm(vm, nextRecurLimit));
+				if (kv.Key == ValString.magicIsA)
+                    nextRecurLimit = 1;
+                _workingStringBuilder.Append(kv.Key.CodeForm(vm, nextRecurLimit));
+                _workingStringBuilder.Append(": ");
+                _workingStringBuilder.Append(kv.Value == null ? "null" : kv.Value.CodeForm(vm, nextRecurLimit));
+                if(++i != map.Count)
+                    _workingStringBuilder.Append(", ");
 			}
-			return "{" + String.Join(", ", strs) + "}";
+            _workingStringBuilder.Append("}");
+            return _workingStringBuilder.ToString();
 		}
 
 		public override string ToString(TAC.Machine vm) {
