@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
 using System.Text;
+using System.Collections;
 
 namespace Miniscript {
 	
@@ -222,7 +223,7 @@ namespace Miniscript {
                 Console.WriteLine("Extra unref! For " + GetType().ToString());
             ResetState();
             ReturnToPool();
-            Console.WriteLine("into pool " + GetType().ToString());
+            //Console.WriteLine("into pool " + GetType().ToString());
         }
         public override Value Val(TAC.Context context)
         {
@@ -487,7 +488,7 @@ namespace Miniscript {
         protected override void ResetState()
         {
             value = null;
-            Console.WriteLine("Str back in pool");
+            //Console.WriteLine("Str back in pool");
         }
         protected override void ReturnToPool()
         {
@@ -826,8 +827,8 @@ namespace Miniscript {
 	/// ValMap represents a MiniScript map, which under the hood is just a Dictionary
 	/// of Value, Value pairs.
 	/// </summary>
-	public class ValMap : PoolableValue {
-		public Dictionary<Value, Value> map;
+	public class ValMap : PoolableValue, IEnumerable {
+		private readonly Dictionary<Value, Value> map;
 
 		// Assignment override function: return true to cancel (override)
 		// the assignment, or false to allow it to happen as normal.
@@ -841,6 +842,15 @@ namespace Miniscript {
 		}
         protected override void ResetState()
         {
+            foreach(var kvp in map)
+            {
+                PoolableValue poolableKey = kvp.Key as PoolableValue;
+                PoolableValue poolableVal = kvp.Value as PoolableValue;
+                if (poolableKey != null)
+                    poolableKey.Unref();
+                if (poolableVal != null)
+                    poolableVal.Unref();
+            }
             map.Clear();
         }
         protected override void ReturnToPool()
@@ -850,6 +860,7 @@ namespace Miniscript {
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValMap>();
             _valuePool.ReturnToPool(this);
+            //Console.WriteLine("Returning ValMap");
         }
         public static ValMap Create()
         {
@@ -864,10 +875,21 @@ namespace Miniscript {
                     return valMap;
                 }
             }
+            //Console.WriteLine("Creating ValMap");
             return new ValMap(true);
         }
-		
-		public override bool BoolValue() {
+        public override void Ref()
+        {
+            base.Ref();
+            //Console.WriteLine("ValMap Ref ref count " + base._refCount);
+        }
+        public override void Unref()
+        {
+            base.Unref();
+            //Console.WriteLine("ValMap unref ref count " + base._refCount);
+        }
+
+        public override bool BoolValue() {
 			// A map is considered true if it is nonempty.
 			return map != null && map.Count > 0;
 		}
@@ -932,11 +954,46 @@ namespace Miniscript {
 			}
 			set {
                 //ValString valStr = ValString.Create(identifier);
-                map[ValString.Create(identifier)] = value;
-                //valStr.Unref();
-                //ValString valStr = ValString.Create(identifier);
-                //map[valStr] = value;
-                //valStr.Unref();
+                PoolableValue poolableValue = value as PoolableValue;
+                if (poolableValue != null)
+                    poolableValue.Ref();
+
+                ValString idVal = ValString.Create(identifier);
+                if(map.TryGetValue(idVal, out Value existing))
+                {
+                    // Unref the existing
+                    PoolableValue valPool = existing as PoolableValue;
+                    if (valPool != null)
+                        valPool.Unref();
+                }
+                map[idVal] = value;
+            }
+		}
+
+		public Value this [Value identifier] {
+			get {
+                return map[identifier];
+			}
+			set {
+                PoolableValue poolableValue = value as PoolableValue;
+                if (poolableValue != null)
+                    poolableValue.Ref();
+
+                if(map.TryGetValue(identifier, out Value existing))
+                {
+                    // Unref the existing
+                    PoolableValue valPool = existing as PoolableValue;
+                    if (valPool != null)
+                        valPool.Unref();
+                }
+                else
+                {
+                    // Ref the key
+                    PoolableValue keyPool = identifier as PoolableValue;
+                    if (keyPool != null)
+                        keyPool.Ref();
+                }
+                map[identifier] = value;
             }
 		}
 		
@@ -951,6 +1008,17 @@ namespace Miniscript {
 			var idVal = TempValString.Get(identifier);
 			bool result = map.TryGetValue(idVal, out value);
 			TempValString.Release(idVal);
+			return result;
+		}
+		/// <summary>
+		/// Look up the given identifier as quickly as possible, without
+		/// walking the __isa chain or doing anything fancy.  (This is used
+		/// when looking up local variables.)
+		/// </summary>
+		/// <param name="identifier">identifier to look up</param>
+		/// <returns>true if found, false if not</returns>
+		public bool TryGetValue(Value identifier, out Value value) {
+			bool result = map.TryGetValue(identifier, out value);
 			return result;
 		}
 		
@@ -1020,13 +1088,13 @@ namespace Miniscript {
 			// This is used when a map literal appears in the source, to
 			// ensure that each time that code executes, we get a new, distinct
 			// mutable object, rather than the same object multiple times.
-			var result = new ValMap(true);
+			var result = ValMap.Create();
 			foreach (Value k in map.Keys) {
 				Value key = k;		// stupid C#!
 				Value value = map[key];
 				if (key is ValTemp || key is ValVar) key = key.Val(context);
 				if (value is ValTemp || value is ValVar) value = value.Val(context);
-				result.map[key] = value;
+				result[key] = value;
 			}
 			return result;
 		}
@@ -1109,14 +1177,33 @@ namespace Miniscript {
             //Console.WriteLine("Map set elem " + index.ToString() + ": " + value.ToString());
 			if (index == null) index = ValNull.instance;
 			if (assignOverride == null || !assignOverride(index, value)) {
-                // If the index/value is poolable, ref it
-                PoolableValue indexPool = index as PoolableValue;
-                if(indexPool != null)
-                    indexPool.Ref();
-                PoolableValue valPool = value as PoolableValue;
-                if(valPool != null)
-                    valPool.Ref();
-				map[index] = value;
+
+                //TODO there may be issues where two indexes are different instances
+                // but are Equal(). Then we should be careful about unreffing the current
+                // instance. Not sure if that normally happens though
+                if(map.TryGetValue(index, out Value existing))
+                {
+                    // If the value is poolable, ref it
+                    PoolableValue valPool = value as PoolableValue;
+                    if(valPool != null)
+                        valPool.Ref();
+                    // Unref what's currently there
+                    PoolableValue existingPoolVal = existing as PoolableValue;
+                    if(existingPoolVal != null)
+                        existingPoolVal.Unref();
+                    map[index] = value;
+                }
+                else
+                {
+                    // If the index/value is poolable, ref it
+                    PoolableValue indexPool = index as PoolableValue;
+                    if(indexPool != null)
+                        indexPool.Ref();
+                    PoolableValue valPool = value as PoolableValue;
+                    if(valPool != null)
+                        valPool.Ref();
+                    map[index] = value;
+                }
 			}
 		}
 
@@ -1137,6 +1224,30 @@ namespace Miniscript {
 			result.map[valStr] = map[key];
 			return result;
 		}
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return map.GetEnumerator();
+        }
+        public Dictionary<Value, Value>.Enumerator GetEnumerator()
+        {
+            return map.GetEnumerator();
+        }
+        public bool Remove(Value keyVal)
+        {
+            // Pull the current key/value so that we can unref it
+            if(map.TryGetValue(keyVal, out Value existing))
+            {
+                PoolableValue keyPool = keyVal as PoolableValue;
+                PoolableValue valPool = existing as PoolableValue;
+                if (keyPool != null)
+                    keyPool.Unref();
+                if (valPool != null)
+                    valPool.Unref();
+                map.Remove(keyVal);
+                return true;
+            }
+            return false;
+        }
 
         static ValString keyStr = ValString.Create("key", false);
 		static ValString valStr = ValString.Create("value", false);
@@ -1315,7 +1426,7 @@ namespace Miniscript {
 					// If the map contains this identifier, return its value.
 					Value result = null;
 					var idVal = TempValString.Get(identifier);
-					bool found = ((ValMap)sequence).map.TryGetValue(idVal, out result);
+					bool found = ((ValMap)sequence).TryGetValue(idVal, out result);
 					TempValString.Release(idVal);
 					if (found) {
 						valueFoundIn = (ValMap)sequence;
@@ -1324,7 +1435,7 @@ namespace Miniscript {
 					
 					// Otherwise, if we have an __isa, try that next.
 					if (loopsLeft < 0) return null;		// (unless we've hit the loop limit)
-					if (!((ValMap)sequence).map.TryGetValue(ValString.magicIsA, out sequence)) {
+					if (!((ValMap)sequence).TryGetValue(ValString.magicIsA, out sequence)) {
 						// ...and if we don't have an __isa, try the generic map type if allowed
 						if (!includeMapType) throw new KeyException(identifier);
 						sequence = context.vm.mapType ?? Intrinsics.MapType();

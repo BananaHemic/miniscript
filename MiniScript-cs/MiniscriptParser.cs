@@ -1039,7 +1039,7 @@ namespace Miniscript {
 				RequireToken(tokens, Token.Type.Colon);
 				AllowLineBreak(tokens); // allow a line break after a colon
 				Value value = ParseExpr(tokens);
-				map.map[key ?? ValNull.instance] = value;
+				map[key ?? ValNull.instance] = value;
 				
 				if (RequireEitherToken(tokens, Token.Type.Comma, Token.Type.RCurly).type == Token.Type.RCurly) break;
 			}

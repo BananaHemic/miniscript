@@ -381,8 +381,8 @@ namespace Miniscript {
 				Value self = context.GetVar("self");
 				if (self is ValMap) {
 					ValMap map = (ValMap)self;
-                    var keys = map.map.Keys;
-                    ValList list = ValList.Create(keys.Count);
+                    var keys = map.Keys;
+                    ValList list = ValList.Create(map.Count);
                     foreach(var key in keys)
                     {
                         if (key is ValNull)
@@ -448,11 +448,11 @@ namespace Miniscript {
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
 					bool sawAfter = (after == null);
-					foreach (Value k in map.map.Keys) {
+					foreach (Value k in map.Keys) {
 						if (!sawAfter) {
 							if (k.Equality(after) == 1) sawAfter = true;
 						} else {
-							if (map.map[k].Equality(value) == 1) return new Intrinsic.Result(k);
+							if (map[k].Equality(value) == 1) return new Intrinsic.Result(k);
 						}
 					}
 				}
@@ -605,9 +605,9 @@ namespace Miniscript {
 					return new Intrinsic.Result(result);
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
-					if (map.map.Count < 1) return Intrinsic.Result.Null;
-					Value result = map.map.Keys.First();
-					map.map.Remove(result);
+					if (map.Count < 1) return Intrinsic.Result.Null;
+					Value result = map.Keys.First();
+					map.Remove(result);
 					return new Intrinsic.Result(result);
 				}
 				return Intrinsic.Result.Null;
@@ -627,9 +627,9 @@ namespace Miniscript {
 					return new Intrinsic.Result(result);
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
-					if (map.map.Count < 1) return Intrinsic.Result.Null;
-					Value result = map.map.Keys.First();
-					map.map.Remove(result);
+					if (map.Count < 1) return Intrinsic.Result.Null;
+					Value result = map.Keys.First();
+					map.Remove(result);
 					return new Intrinsic.Result(result);
 				}
 				return Intrinsic.Result.Null;
@@ -649,7 +649,7 @@ namespace Miniscript {
 					return new Intrinsic.Result(self);
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
-					map.map[value] = ValNumber.one;
+					map[value] = ValNumber.one;
 					return new Intrinsic.Result(self);
 				}
 				return Intrinsic.Result.Null;
@@ -698,8 +698,8 @@ namespace Miniscript {
 				if (self is ValMap) {
 					ValMap selfMap = (ValMap)self;
 					if (k == null) k = ValNull.instance;
-					if (selfMap.map.ContainsKey(k)) {
-						selfMap.map.Remove(k);
+					if (selfMap.ContainsKey(k)) {
+						selfMap.Remove(k);
 						return Intrinsic.Result.True;
 					}
 					return Intrinsic.Result.False;
@@ -749,8 +749,8 @@ namespace Miniscript {
 					// over the keys.  So gather the keys to change, then change
 					// them afterwards.
 					List<Value> keysToChange = null;
-					foreach (Value k in selfMap.map.Keys) {
-						if (selfMap.map[k].Equality(oldval) == 1) {
+					foreach (Value k in selfMap.Keys) {
+						if (selfMap[k].Equality(oldval) == 1) {
 							if (keysToChange == null) keysToChange = new List<Value>();
 							keysToChange.Add(k);
 							count++;
@@ -758,7 +758,7 @@ namespace Miniscript {
 						}
 					}
 					if (keysToChange != null) foreach (Value k in keysToChange) {
-						selfMap.map[k] = newval;
+						selfMap[k] = newval;
 					}
 					return new Intrinsic.Result(self);
 				} else if (self is ValList) {
@@ -975,17 +975,22 @@ namespace Miniscript {
 						list[i] = temp;
 					}
 				} else if (self is ValMap) {
-					Dictionary<Value, Value> map = ((ValMap)self).map;
+                    //Dictionary<Value, Value> map = ((ValMap)self).map;
+                    ValMap valMap = self as ValMap;
 					// Fisher-Yates again, but this time, what we're swapping
 					// is the values associated with the keys, not the keys themselves.
-					List<Value> keys = System.Linq.Enumerable.ToList(map.Keys);
+					List<Value> keys = System.Linq.Enumerable.ToList(valMap.Keys);
 					for (int i=keys.Count-1; i >= 1; i--) {
 						int j = random.Next(i+1);
 						Value keyi = keys[i];
 						Value keyj = keys[j];
-						Value temp = map[keyj];
-						map[keyj] = map[keyi];
-						map[keyi] = temp;
+						Value temp = valMap[keyj];
+                        // We're about to overwrite keyj, so Ref it now
+                        PoolableValue tempPool = temp as PoolableValue;
+                        if (tempPool != null)
+                            tempPool.Ref();
+						valMap[keyj] = valMap[keyi];
+						valMap[keyi] = temp;
 					}
 				}
 				return Intrinsic.Result.Null;
@@ -1003,8 +1008,9 @@ namespace Miniscript {
 						sum += v.DoubleValue();
 					}
 				} else if (val is ValMap) {
-					Dictionary<Value, Value> map = ((ValMap)val).map;
-					foreach (Value v in map.Values) {
+                    //Dictionary<Value, Value> map = ((ValMap)val).map;
+                    ValMap valMap = val as ValMap;
+					foreach (Value v in valMap.Values) {
 						sum += v.DoubleValue();
 					}
 				}
@@ -1059,8 +1065,8 @@ namespace Miniscript {
                 Value self = context.GetVar("self");
                 if (self is ValMap) {
                     ValMap map = (ValMap)self;
-                    ValList values = ValList.Create(map.map.Values.Count);
-                    foreach(var v in map.map.Values)
+                    ValList values = ValList.Create(map.Values.Count);
+                    foreach(var v in map.Values)
                         values.Add(v);
                     return new Intrinsic.Result(values);
                 } else if (self is ValString) {

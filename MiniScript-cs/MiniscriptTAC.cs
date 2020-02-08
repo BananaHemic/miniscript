@@ -459,12 +459,17 @@ namespace Miniscript {
 						return ValNumber.Truth(1.0 - ((ValMap)opA).Equality(opB));
 					} else if (op == Op.APlusB) {
 						// map combination
-						Dictionary<Value, Value> map = ((ValMap)opA).map;
+						//Dictionary<Value, Value> map = ((ValMap)opA).map;
 						Check.Type(opB, typeof(ValMap), "map combination");
-						Dictionary<Value, Value> map2 = ((ValMap)opB).map;
+						//Dictionary<Value, Value> map2 = ((ValMap)opB).map;
 						ValMap result = ValMap.Create();
-                        foreach (KeyValuePair<Value, Value> kv in map) result.map[kv.Key] = context.ValueInContext(kv.Value);
-                        foreach (KeyValuePair<Value, Value> kv in map2) result.map[kv.Key] = context.ValueInContext(kv.Value);
+                        ValMap mapA = opA as ValMap;
+                        //TODO I think this is double reffing
+                        foreach (KeyValuePair<Value, Value> kv in mapA)
+                            result[kv.Key] = context.ValueInContext(kv.Value);
+                        ValMap mapB = opB as ValMap;
+                        foreach (KeyValuePair<Value, Value> kv in mapB)
+                            result[kv.Key] = context.ValueInContext(kv.Value);
 						return result;
 					} else if (op == Op.NotA) {
 						return ValNumber.Truth(!opA.BoolValue());
@@ -580,15 +585,7 @@ namespace Miniscript {
                 if (clearVariables)
                 {
                     if(variables != null)
-                    {
-                        foreach(var val in variables.Values)
-                        {
-                            PoolableValue poolable = val as PoolableValue;
-                            if (poolable != null)
-                                poolable.Unref();
-                        }
                         variables.Unref();
-                    }
                     variables = ValMap.Create();
                 }
 			}
@@ -619,23 +616,6 @@ namespace Miniscript {
 				if (variables == null) variables = ValMap.Create();
                 var identifierStr = TempValString.Get(identifier);
 				if (variables.assignOverride == null || !variables.assignOverride(identifierStr, value)) {
-                    // Cleanup existing variables, if applicable
-                    if (variables.TryGetValue(identifier, out Value existing))
-                    {
-                        PoolableValue poolableValue = existing as PoolableValue;
-                        //if (poolableValue != null && existing != value)
-                        if (poolableValue != null)
-                        {
-                            //Console.WriteLine("Var Type was " + existing.GetType().ToString() + " now " + poolableValue.GetType().ToString());
-                            ValNumber exist = existing as ValNumber;
-                            ValNumber upd = value as ValNumber;
-                            //if (exist != null && upd != null)
-                            //    Console.WriteLine("ValNum \"" + identifier + "\" was " + exist.value + " now " + upd.value + " ref count was " + exist.GetRefCount() + " now " + upd.GetRefCount());
-                            //else
-                            //    Console.WriteLine("Val \"" + identifier + "\" was " + existing.ToString() + " now " + value.ToString());
-                            poolableValue.Unref();
-                        }
-                    }
                     variables[identifier] = value;
                 }
                 TempValString.Release(identifierStr);
@@ -891,12 +871,20 @@ namespace Miniscript {
 			}
 			
 			public void Stop() {
-				while (stack.Count > 1) stack.Pop();
+				while (stack.Count > 1)
+                {
+                    Context c = stack.Pop();
+                    c.Reset(true);
+                }
 				stack.Peek().JumpToEnd();
 			}
 			
 			public void Reset() {
-				while (stack.Count > 1) stack.Pop();
+                while (stack.Count > 1)
+                {
+                    Context c = stack.Pop();
+                    c.Reset(true);
+                }
 				stack.Peek().Reset(false);
 			}
 
@@ -997,11 +985,12 @@ namespace Miniscript {
 			void PopContext() {
 				// Our top context is done; pop it off, and copy the return value in temp 0.
 				if (stack.Count == 1) return;	// down to just the global stack (which we keep)
-				Context context = stack.Pop();
-				Value result = context.GetTemp(0, null);
-				Value storage = context.resultStorage;
-				context = stack.Peek();
+				Context oldContext = stack.Pop();
+				Value result = oldContext.GetTemp(0, null);
+				Value storage = oldContext.resultStorage;
+				Context context = stack.Peek();
 				context.StoreValue(storage, result);
+                oldContext.Reset(true);
 			}
 
 			public Context GetTopContext() {
@@ -1014,7 +1003,7 @@ namespace Miniscript {
 			
 			public string FindShortName(Value val) {
 				if (globalContext == null || globalContext.variables == null) return null;
-				foreach (var kv in globalContext.variables.map) {
+				foreach (var kv in globalContext.variables) {
 					if (kv.Value == val && kv.Key != val) return kv.Key.ToString(this);
 				}
 				string result = null;

@@ -33,7 +33,7 @@ class MainClass {
 		List<string> actualOutput = new List<string>();
         //miniscript.standardOutput = (string s) => { actualOutput.Add(s); Console.WriteLine(s); };
         miniscript.standardOutput = (string s) => actualOutput.Add(s);
-		miniscript.errorOutput = miniscript.standardOutput;
+        miniscript.errorOutput = miniscript.standardOutput;
 		miniscript.implicitOutput = miniscript.standardOutput;
 		miniscript.RunUntilDone(60, false);
 
