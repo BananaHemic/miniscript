@@ -163,15 +163,20 @@ namespace Miniscript {
 			Intrinsic item = GetByID(id);
 			return item.code(context, partialResult);
 		}
-		
-		/// <summary>
-		/// Result represents the result of an intrinsic call.  An intrinsic will either
-		/// be done with its work, or not yet done (e.g. because it's waiting for something).
-		/// If it's done, set done=true, and store the result Value in result.
-		/// If it's not done, set done=false, and store any partial result in result (and 
-		/// then your intrinsic will get invoked with this Result passed in as partialResult).
-		/// </summary>
-		public struct Result {
+
+        public List<Function.Param> GetParams()
+        {
+            return function.parameters;
+        }
+
+        /// <summary>
+        /// Result represents the result of an intrinsic call.  An intrinsic will either
+        /// be done with its work, or not yet done (e.g. because it's waiting for something).
+        /// If it's done, set done=true, and store the result Value in result.
+        /// If it's not done, set done=false, and store any partial result in result (and 
+        /// then your intrinsic will get invoked with this Result passed in as partialResult).
+        /// </summary>
+        public struct Result {
 			public readonly bool done;		// true if our work is complete; false if we need to Continue
 			public readonly Value result;	// final result if done; in-progress data if not done
             public readonly bool IsAssigned; // Let's us see if this is a null struct

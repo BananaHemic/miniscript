@@ -784,6 +784,9 @@ namespace Miniscript {
 		public override bool CanSetElem() { return true; }
 
 		public override void SetElem(Value index, Value value) {
+            SetElem(index, value, true);
+		}
+		public void SetElem(Value index, Value value, bool takeValueRef) {
 			var i = index.IntValue();
 			if (i < 0) i += values.Count;
 			if (i < 0 || i >= values.Count) {
@@ -794,9 +797,12 @@ namespace Miniscript {
             if (existing != null)
                 existing.Unref();
             // Ref new
-            PoolableValue poolVal = value as PoolableValue;
-            if (poolVal != null)
-                poolVal.Ref();
+            if (takeValueRef)
+            {
+                PoolableValue poolVal = value as PoolableValue;
+                if (poolVal != null)
+                    poolVal.Ref();
+            }
 			values[i] = value;
 		}
         public void RemoveAt(int i)
@@ -1194,7 +1200,17 @@ namespace Miniscript {
 		/// and if found, give that a chance to handle it instead.
 		/// </summary>
 		public override void SetElem(Value index, Value value) {
+            SetElem(index, value, true);
+		}
+		public void SetElem(Value index, Value value, bool takeValueRef) {
             //Console.WriteLine("Map set elem " + index.ToString() + ": " + value.ToString());
+            if (takeValueRef)
+            {
+                // If the value is poolable, ref it
+                PoolableValue valPool = value as PoolableValue;
+                if(valPool != null)
+                    valPool.Ref();
+            }
 			if (index == null) index = ValNull.instance;
 			if (assignOverride == null || !assignOverride(index, value)) {
 
@@ -1203,10 +1219,6 @@ namespace Miniscript {
                 // instance. Not sure if that normally happens though
                 if(map.TryGetValue(index, out Value existing))
                 {
-                    // If the value is poolable, ref it
-                    PoolableValue valPool = value as PoolableValue;
-                    if(valPool != null)
-                        valPool.Ref();
                     // Unref what's currently there
                     PoolableValue existingPoolVal = existing as PoolableValue;
                     if(existingPoolVal != null)
@@ -1219,9 +1231,6 @@ namespace Miniscript {
                     PoolableValue indexPool = index as PoolableValue;
                     if(indexPool != null)
                         indexPool.Ref();
-                    PoolableValue valPool = value as PoolableValue;
-                    if(valPool != null)
-                        valPool.Ref();
                     map[index] = value;
                 }
 			}
