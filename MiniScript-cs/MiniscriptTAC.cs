@@ -543,7 +543,7 @@ namespace Miniscript {
 		/// with a new context formed on each function call (this is known as the
 		/// call stack).
 		/// </summary>
-		public class Context {
+		public class Context : IDisposable {
 			public List<Line> code;			// TAC lines we're executing
 			public int lineNum;				// next line to be executed
 			public ValMap variables;		// local variables for this call frame
@@ -555,6 +555,10 @@ namespace Miniscript {
 			public Machine vm;				// virtual machine
 			public Intrinsic.Result partialResult;	// work-in-progress of our current intrinsic
 			public int implicitResultCounter;	// how many times we have stored an implicit result
+			List<Value> temps;			// values of temporaries; temps[0] is always return value
+
+            [ThreadStatic]
+            private static Stack<Context> _pool;
 
 			public bool done {
 				get { return lineNum >= code.Count; }
@@ -575,11 +579,40 @@ namespace Miniscript {
 				}
 			}
 
-			List<Value> temps;			// values of temporaries; temps[0] is always return value
-
-			public Context(List<Line> code) {
+            public static Context Create(List<Line> code)
+            {
+                if (_pool == null)
+                    _pool = new Stack<Context>();
+                else if(_pool.Count > 0)
+                {
+                    Context c = _pool.Pop();
+                    c.code = code;
+                    //Console.WriteLine("Using pooled context");
+                    return c;
+                }
+                return new Context(code);
+            }
+			private Context(List<Line> code) {
 				this.code = code;
 			}
+            public void Dispose()
+            {
+                Reset(true);
+                code = null;
+                lineNum = 0;
+                variables = null;
+                outerVars = null;
+                if(args != null)
+                    args.Clear();
+                parent = null;
+                resultStorage = null;
+                vm = null;
+                partialResult = default(Intrinsic.Result);
+                implicitResultCounter = 0;
+                if (_pool == null)
+                    _pool = new Stack<Context>();
+                _pool.Push(this);
+            }
 			
 			/// <summary>
 			/// Reset this context to the first line of code, clearing out any 
@@ -588,12 +621,13 @@ namespace Miniscript {
 			/// <param name="clearVariables">if true, clear our local variables</param>
 			public void Reset(bool clearVariables=true) {
 				lineNum = 0;
-				temps = null;
+                if(temps != null)
+                    temps.Clear();
                 if (clearVariables)
                 {
                     if(variables != null)
                         variables.Unref();
-                    variables = ValMap.Create();
+                    variables = null;
                 }
 			}
 
@@ -881,7 +915,7 @@ namespace Miniscript {
 				while (stack.Count > 1)
                 {
                     Context c = stack.Pop();
-                    c.Reset(true);
+                    c.Dispose();
                 }
 				stack.Peek().JumpToEnd();
 			}
@@ -890,7 +924,7 @@ namespace Miniscript {
                 while (stack.Count > 1)
                 {
                     Context c = stack.Pop();
-                    c.Reset(true);
+                    c.Dispose();
                 }
 				stack.Peek().Reset(false);
 			}
@@ -997,7 +1031,7 @@ namespace Miniscript {
 				Value storage = oldContext.resultStorage;
 				Context context = stack.Peek();
 				context.StoreValue(storage, result);
-                oldContext.Reset(true);
+                oldContext.Dispose();
 			}
 
 			public Context GetTopContext() {

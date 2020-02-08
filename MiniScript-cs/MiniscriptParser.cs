@@ -260,7 +260,7 @@ namespace Miniscript {
 		/// <param name="standardOutput"></param>
 		/// <returns></returns>
 		public TAC.Machine CreateVM(TextOutputMethod standardOutput) {
-			TAC.Context root = new TAC.Context(output.code);
+			TAC.Context root = TAC.Context.Create(output.code);
 			return new TAC.Machine(root, standardOutput);
 		}
 		
