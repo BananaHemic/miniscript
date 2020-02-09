@@ -13,7 +13,7 @@ using System.Linq;
 using System.Globalization;
 
 namespace Miniscript {
-	public class Parser {
+	public class Parser : IDisposable {
 
 		public string errorContext;	// name of file, etc., used for error reporting
 		//public int lineNum;			// which line number we're currently parsing
@@ -32,7 +32,7 @@ namespace Miniscript {
 			public string keyword;		// jump type, by keyword: "while", "for", etc.
 		}
 
-		class ParseState {
+		class ParseState : IDisposable {
 			public List<TAC.Line> code = new List<TAC.Line>();
 			public List<BackPatch> backpatches = new List<BackPatch>();
 			public List<JumpPoint> jumpPoints = new List<JumpPoint>();
@@ -41,6 +41,16 @@ namespace Miniscript {
 			public void Add(TAC.Line line) {
 				code.Add(line);
 			}
+
+            public void Dispose()
+            {
+                if(code != null)
+                {
+                    for (int i = 0; i < code.Count; i++)
+                        code[i].Dispose();
+                    code = null;
+                }
+            }
 
 			/// <summary>
 			/// Add the last code line as a backpatch point, to be patched
@@ -163,6 +173,22 @@ namespace Miniscript {
 		public Parser() {
 			Reset();
 		}
+
+        public void Dispose()
+        {
+            if(outputStack != null)
+            {
+                while(outputStack.Count > 0)
+                {
+                    ParseState parseState = outputStack.Pop();
+                    parseState.Dispose();
+                }
+                outputStack = null;
+            }
+            if (output != null)
+                output.Dispose();
+            output = null;
+        }
 
 		/// <summary>
 		/// Completely clear out and reset our parse state, throwing out
@@ -580,7 +606,8 @@ namespace Miniscript {
 
 		Value ParseExpr(Lexer tokens, bool asLval=false, bool statementStart=false) {
 			ExpressionParsingMethod nextLevel = ParseFunction;
-			return nextLevel(tokens, asLval, statementStart);
+			Value exprVal = nextLevel(tokens, asLval, statementStart);
+            return exprVal;
 		}
 
 		Value ParseFunction(Lexer tokens, bool asLval=false, bool statementStart=false) {

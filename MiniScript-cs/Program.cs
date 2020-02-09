@@ -80,7 +80,7 @@ class MainClass {
             Print(string.Format("Leaking ValMap, was {0} now {1}", numValMapAllocated, finalNumValMapAllocated));
         if (numValListAllocated != finalNumValListAllocated)
             Print(string.Format("Leaking ValList, was {0} now {1}", numValListAllocated, finalNumValListAllocated));
-	}
+    }
 
 	static void RunTestSuite(string path) {
 		StreamReader file = new StreamReader(path);
@@ -156,9 +156,14 @@ class MainClass {
 		//UnitTest.Run();
 
 		Print("Running test suite.\n");
+        System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+        stopwatch.Start();
         //RunTestSuite("../../../TestSuite.txt");
         RunTestSuite("../../../TestSuite_min.txt");
         //RunTestSuite("../../../TestSuite_split.txt");
+        stopwatch.Stop();
+        // Current time for full test: 256ms
+        Print("Elapsed execution time: " + stopwatch.ElapsedMilliseconds + "ms");
 
         Print("\n");
 

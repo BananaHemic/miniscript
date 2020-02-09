@@ -27,7 +27,7 @@ namespace Miniscript {
 		/// </summary>
 		/// <param name="context">TAC context to evaluate in</param>
 		/// <returns>value of this value (possibly the same as this)</returns>
-		public virtual Value Val(TAC.Context context) {
+		public virtual Value Val(TAC.Context context, bool takeRef) {
 			return this;		// most types evaluate to themselves
 		}
 		
@@ -221,19 +221,23 @@ namespace Miniscript {
             if (_refCount > 0)
                 return;
             else if (_refCount < 0)
+            {
                 Console.WriteLine("Extra unref! For " + GetType().ToString());
+                return;
+            }
             ResetState();
             ReturnToPool();
             //Console.WriteLine("into pool " + GetType().ToString());
         }
-        public override Value Val(TAC.Context context)
+        public override Value Val(TAC.Context context, bool takeRef)
         {
             //TODO I think that this is wrong, sometimes
             // I believe that Val returns a new Value,
             // instead of the existing one
             //Console.WriteLine("valref");
-            Ref();
-            return base.Val(context);
+            if(takeRef)
+                Ref();
+            return base.Val(context, takeRef);
         }
         public override Value Val(TAC.Context context, out ValMap valueFoundIn)
         {
@@ -269,7 +273,7 @@ namespace Miniscript {
 			return -1;
 		}
 
-		public override Value Val(TAC.Context context) {
+		public override Value Val(TAC.Context context, bool takeRef) {
 			return null;
 		}
 
@@ -346,6 +350,10 @@ namespace Miniscript {
                 //Console.WriteLine("Recyclying val " + value);
             }
             base.Unref();
+        }
+        public override void Ref()
+        {
+            base.Ref();
         }
         //public override Value Val(TAC.Context context)
         //{
@@ -489,6 +497,10 @@ namespace Miniscript {
 			this.value = value ?? _empty.value;
             //base._refCount = 0;
 		}
+        public override void Ref()
+        {
+            base.Ref();
+        }
         public override void Unref()
         {
             base.Unref();
@@ -703,7 +715,7 @@ namespace Miniscript {
 			for (var i = 0; i < values.Count; i++) {
 				var copied = false;
 				if (values[i] is ValTemp || values[i] is ValVar) {
-					Value newVal = values[i].Val(context);
+					Value newVal = values[i].Val(context, true);
 					if (newVal != values[i]) {
 						// OK, something changed, so we're going to need a new copy of the list.
 						if (result == null) {
@@ -730,7 +742,7 @@ namespace Miniscript {
 			var result = ValList.Create();
 			for (var i = 0; i < values.Count; i++) {
                 //TODO this may be double Ref()ing
-				result.Add(values[i] == null ? null : values[i].Val(context));
+				result.Add(values[i] == null ? null : values[i].Val(context, true));
 			}
 			return result;
 		}
@@ -1107,11 +1119,11 @@ namespace Miniscript {
 				Value value = map[key];
 				if (key is ValTemp || key is ValVar) {
 					map.Remove(key);
-					key = key.Val(context);
+					key = key.Val(context, true);
 					map[key] = value;
 				}
 				if (value is ValTemp || value is ValVar) {
-					map[key] = value.Val(context);
+					map[key] = value.Val(context, true);
 				}
 			}
 			return this;
@@ -1126,8 +1138,8 @@ namespace Miniscript {
 			foreach (Value k in map.Keys) {
 				Value key = k;		// stupid C#!
 				Value value = map[key];
-				if (key is ValTemp || key is ValVar) key = key.Val(context);
-				if (value is ValTemp || value is ValVar) value = value.Val(context);
+				if (key is ValTemp || key is ValVar) key = key.Val(context, true);
+				if (value is ValTemp || value is ValVar) value = value.Val(context, true);
 				result[key] = value;
 			}
 			return result;
@@ -1251,6 +1263,12 @@ namespace Miniscript {
                     map[index] = value;
                 }
 			}
+		}
+		public void SetElem(string index, Value value, bool takeValueRef) {
+            //TODO unref current string key if present
+            ValString keyStr = ValString.Create(index);
+            SetElem(keyStr, value, takeValueRef);
+            keyStr.Unref();
 		}
 
 		/// <summary>
@@ -1393,7 +1411,7 @@ namespace Miniscript {
 			this.tempNum = tempNum;
 		}
 
-		public override Value Val(TAC.Context context) {
+		public override Value Val(TAC.Context context, bool takeRef) {
 			return context.GetTemp(tempNum);
 		}
 
@@ -1424,7 +1442,7 @@ namespace Miniscript {
 			this.identifier = identifier;
 		}
 
-		public override Value Val(TAC.Context context) {
+		public override Value Val(TAC.Context context, bool takeRef) {
 			return context.GetVar(identifier);
 		}
 
@@ -1472,7 +1490,7 @@ namespace Miniscript {
 			valueFoundIn = null;
 			int loopsLeft = 1000;		// (max __isa chain depth)
 			while (sequence != null) {
-				if (sequence is ValTemp || sequence is ValVar) sequence = sequence.Val(context);
+				if (sequence is ValTemp || sequence is ValVar) sequence = sequence.Val(context, false);
 				if (sequence is ValMap) {
 					// If the map contains this identifier, return its value.
 					Value result = null;
@@ -1512,18 +1530,18 @@ namespace Miniscript {
 			return null;
 		}
 
-		public override Value Val(TAC.Context context) {
+		public override Value Val(TAC.Context context, bool takeRef) {
 			ValMap ignored;
 			return Val(context, out ignored);
 		}
 		
 		public override Value Val(TAC.Context context, out ValMap valueFoundIn) {
 			valueFoundIn = null;
-			Value idxVal = index == null ? null : index.Val(context);
+			Value idxVal = index == null ? null : index.Val(context, false);
 			if (idxVal is ValString) return Resolve(sequence, ((ValString)idxVal).value, context, out valueFoundIn);
 			// Ok, we're searching for something that's not a string;
 			// this can only be done in maps and lists (and lists, only with a numeric index).
-			Value baseVal = sequence.Val(context);
+			Value baseVal = sequence.Val(context, false);
 			if (baseVal is ValMap) {
 				Value result = ((ValMap)baseVal).Lookup(idxVal, out valueFoundIn);
 				if (valueFoundIn == null) throw new KeyException(idxVal.CodeForm(context.vm, 1));

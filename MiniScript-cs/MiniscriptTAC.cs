@@ -22,7 +22,7 @@ namespace Miniscript {
         [ThreadStatic]
         private static StringBuilder _workingStringBuilder;
 
-		public class Line {
+		public class Line : IDisposable {
 			public enum Op {
 				Noop = 0,
 				AssignA,
@@ -71,6 +71,23 @@ namespace Miniscript {
 				this.rhsA = rhsA;
 				this.rhsB = rhsB;
 			}
+
+            public void Dispose()
+            {
+                //TODO not sure if this is doing anything
+                PoolableValue poolLhs = lhs as PoolableValue;
+                PoolableValue poolRhsA = rhsA as PoolableValue;
+                PoolableValue poolRhsB = rhsB as PoolableValue;
+                if (poolLhs != null)
+                    poolLhs.Unref();
+                if (poolRhsA != null)
+                    poolRhsA.Unref();
+                if (poolRhsB != null)
+                    poolRhsB.Unref();
+                lhs = null;
+                rhsA = null;
+                rhsB = null;
+            }
 			
 			public override int GetHashCode() {
 				return lhs.GetHashCode() ^ op.GetHashCode() ^ rhsA.GetHashCode() ^ rhsB.GetHashCode() ^ location.GetHashCode();
@@ -202,7 +219,7 @@ namespace Miniscript {
 					} else if (rhsA == null) {
 						return null;
 					} else {
-						return rhsA.Val(context);
+						return rhsA.Val(context, true);
 					}
 				}
 				if (op == Op.CopyA) {
@@ -217,12 +234,12 @@ namespace Miniscript {
 					} else if (rhsA == null) {
 						return null;
 					} else {
-						return rhsA.Val(context);
+						return rhsA.Val(context, true);
 					}
 				}
 
-				Value opA = rhsA!=null ? rhsA.Val(context) : null;
-				Value opB = rhsB!=null ? rhsB.Val(context) : null;
+				Value opA = rhsA!=null ? rhsA.Val(context, false) : null;
+				Value opB = rhsB!=null ? rhsB.Val(context, false) : null;
 
 				if (op == Op.AisaB) {
 					if (opA == null) return ValNumber.Truth(opB == null);
@@ -452,7 +469,7 @@ namespace Miniscript {
 						// (note, cases where opB is a string are handled above, along with
 						// all the other types; so we'll only get here for non-string cases)
 						ValSeqElem se = new ValSeqElem(opA, opB);
-						return se.Val(context);
+						return se.Val(context, true);
 						// (This ensures we walk the "__isa" chain in the standard way.)
 					} else if (op == Op.ElemBofIterA) {
 						// With a map, ElemBofIterA is different from ElemBofA.  This one
@@ -652,14 +669,22 @@ namespace Miniscript {
 				return defaultValue;
 			}
 
-			public void SetVar(string identifier, Value value) {
-				if (identifier == "globals" || identifier == "locals") {
+			public void SetVar(Value identifier, Value value) {
+				if (variables == null) variables = ValMap.Create();
+				if (variables.assignOverride == null || !variables.assignOverride(identifier, value)) {
+                    variables[identifier] = value;
+                }
+			}
+            public void SetVar(string identifier, Value value)
+            {
+                if (identifier == "globals" || identifier == "locals") {
 					throw new RuntimeException("can't assign to " + identifier);
 				}
 				if (variables == null) variables = ValMap.Create();
                 var identifierStr = TempValString.Get(identifier);
 				if (variables.assignOverride == null || !variables.assignOverride(identifierStr, value)) {
-                    variables[identifier] = value;
+                    //variables[identifier] = value;
+                    variables.SetElem(identifier, value, false);
                 }
                 TempValString.Release(identifierStr);
 			}
@@ -769,17 +794,18 @@ namespace Miniscript {
 				if (lhs is ValTemp) {
 					SetTemp(((ValTemp)lhs).tempNum, value);
 				} else if (lhs is ValVar) {
-					SetVar(((ValVar)lhs).identifier, value);
-				} else if (lhs is ValSeqElem) {
+                    //SetVar(lhs, value);
+                    SetVar(((ValVar)lhs).identifier, value);
+                } else if (lhs is ValSeqElem) {
 					ValSeqElem seqElem = (ValSeqElem)lhs;
-					Value seq = seqElem.sequence.Val(this);
+					Value seq = seqElem.sequence.Val(this, false);
 					if (seq == null) throw new RuntimeException("can't set indexed element of null");
 					if (!seq.CanSetElem()) {
 						throw new RuntimeException("can't set an indexed element in this type");
 					}
 					Value index = seqElem.index;
 					if (index is ValVar || index is ValSeqElem || 
-						index is ValTemp) index = index.Val(this);
+						index is ValTemp) index = index.Val(this, false);
 					seq.SetElem(index, value);
 				} else {
 					if (lhs != null) throw new RuntimeException("not an lvalue");
@@ -788,7 +814,7 @@ namespace Miniscript {
 			
 			public Value ValueInContext(Value value) {
 				if (value == null) return null;
-				return value.Val(this);
+				return value.Val(this, false);
 			}
 
 			/// <summary>
@@ -1003,9 +1029,9 @@ namespace Miniscript {
                         //TODO we may want to just make ValVar do the Ref() instead
                         if(line.rhsA is ValVar)
                         {
-                            PoolableValue poolableValue = funcVal as PoolableValue;
-                            if (poolableValue != null)
-                                poolableValue.Ref();
+                            //PoolableValue poolableValue = funcVal as PoolableValue;
+                            //if (poolableValue != null)
+                                //poolableValue.Ref();
                         }
 						context.StoreValue(line.lhs, funcVal);
 					}

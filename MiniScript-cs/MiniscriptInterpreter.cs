@@ -303,6 +303,9 @@ namespace Miniscript {
             if (vm != null)
                 vm.Dispose();
             vm = null;
+            if (parser != null)
+                parser.Dispose();
+            parser = null;
         }
 	}
 }
