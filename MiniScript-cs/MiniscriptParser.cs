@@ -1091,7 +1091,7 @@ namespace Miniscript {
 				AllowLineBreak(tokens); // allow a line break after a comma or open bracket
 
 				Value elem = ParseExpr(tokens);
-				list.Add(elem);
+				list.Add(elem, false); // We don't ref here, List has the only reference to this ValNumber
 				if (RequireEitherToken(tokens, Token.Type.Comma, Token.Type.RSquare).type == Token.Type.RSquare) break;
 			}
 			if (statementStart) return list;	// return the list as-is for indexed assignment (foo[3]=42)

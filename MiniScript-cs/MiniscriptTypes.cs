@@ -676,11 +676,14 @@ namespace Miniscript {
         private ValList(int capacity, bool poolable) : base(poolable) {
             values = new List<Value>(capacity);
 		}
-        public void Add(Value value)
+        public void Add(Value value, bool takeRef=true)
         {
-            PoolableValue valPool = value as PoolableValue;
-            if (valPool != null)
-                valPool.Ref();
+            if (takeRef)
+            {
+                PoolableValue valPool = value as PoolableValue;
+                if (valPool != null)
+                    valPool.Ref();
+            }
             values.Add(value);
         }
         public void SetToList(List<Value> recvValues)
@@ -750,8 +753,7 @@ namespace Miniscript {
 			// mutable object, rather than the same object multiple times.
 			var result = ValList.Create(values.Count);
 			for (var i = 0; i < values.Count; i++) {
-                //TODO this may be double Ref()ing
-				result.Add(values[i] == null ? null : values[i].Val(context, true));
+				result.Add(values[i] == null ? null : values[i].Val(context, true), false);
 			}
 			return result;
 		}
