@@ -45,20 +45,9 @@ namespace Miniscript {
 			ReportError(string.Format(desc, actual, expected));
 		}
 
-        public static void TestValMapPooling()
-        {
-            ValMap map = ValMap.Create();
-            map["test1"] = ValString.Create("original");
-            map.Unref();
-            ValMap newMap = ValMap.Create();
-            if(newMap.TryGetValue("test1", out Value val))
-                Console.WriteLine("Error, object ValMap not reset in pool");
-        }
-
 		public static void Run() {
 			Lexer.RunUnitTests();
 			Parser.RunUnitTests();
-            TestValMapPooling();
 		}
 	}
 }

@@ -169,6 +169,7 @@ namespace Miniscript {
     public class ValuePool<T> where T : PoolableValue
     {
         private readonly Stack<T> _pool = new Stack<T>();
+        public int Count { get { return _pool.Count; } }
 
         public T GetInstance()
         {
@@ -314,6 +315,9 @@ namespace Miniscript {
 		public double value { get; private set; }
         [ThreadStatic]
         protected static ValuePool<ValNumber> _valuePool;
+        [ThreadStatic]
+        protected static uint _numInstancesAllocated = 0;
+        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
 
 		private ValNumber(double value, bool usePool) : base(usePool) {
 			this.value = value;
@@ -332,6 +336,7 @@ namespace Miniscript {
                     return val;
                 }
             }
+            _numInstancesAllocated++;
             return new ValNumber(value, true);
         }
         public override void Unref()
@@ -452,6 +457,9 @@ namespace Miniscript {
         [ThreadStatic]
         protected static ValuePool<ValString> _valuePool;
         [ThreadStatic]
+        protected static uint _numInstancesAllocated = 0;
+        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
+        [ThreadStatic]
         private static StringBuilder _workingSbA;
         [ThreadStatic]
         private static StringBuilder _workingSbB;
@@ -474,6 +482,7 @@ namespace Miniscript {
                 }
             }
 
+            _numInstancesAllocated++;
             return new ValString(val, true);
         }
 		protected ValString(string value, bool usePool) : base(usePool) {
@@ -609,6 +618,9 @@ namespace Miniscript {
         [ThreadStatic]
         private static ValuePool<ValList> _valuePool;
         [ThreadStatic]
+        protected static uint _numInstancesAllocated = 0;
+        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
+        [ThreadStatic]
         private static StringBuilder _workingStringBuilder;
 
         public static ValList Create(int capacity=0)
@@ -626,6 +638,7 @@ namespace Miniscript {
                 }
             }
 
+            _numInstancesAllocated++;
             return new ValList(capacity, true);
         }
         private ValList(int capacity, bool poolable) : base(poolable) {
@@ -852,6 +865,9 @@ namespace Miniscript {
         [ThreadStatic]
         protected static ValuePool<ValMap> _valuePool;
         [ThreadStatic]
+        protected static uint _numInstancesAllocated = 0;
+        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
+        [ThreadStatic]
         private static StringBuilder _workingStringBuilder;
 
 		private ValMap(bool usePool) : base(usePool) {
@@ -893,6 +909,7 @@ namespace Miniscript {
                 }
             }
             //Console.WriteLine("Creating ValMap");
+            _numInstancesAllocated++;
             return new ValMap(true);
         }
         public override void Ref()

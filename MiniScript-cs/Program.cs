@@ -30,6 +30,13 @@ class MainClass {
 //		Console.WriteLine(string.Join("\n", expectedOutput));
 
 		Interpreter miniscript = new Interpreter(sourceLines);
+
+        // Get the current number of PoolableVars in use across the system
+        long numValNumAllocated = ValNumber.NumInstancesInUse;
+        long numValStrAllocated = ValString.NumInstancesInUse;
+        long numValMapAllocated = ValMap.NumInstancesInUse;
+        long numValListAllocated = ValList.NumInstancesInUse;
+
 		List<string> actualOutput = new List<string>();
         //miniscript.standardOutput = (string s) => { actualOutput.Add(s); Console.WriteLine(s); };
         miniscript.standardOutput = (string s) => actualOutput.Add(s);
@@ -59,6 +66,19 @@ class MainClass {
 			}
 		}
 
+        long finalNumValNumAllocated = ValNumber.NumInstancesInUse;
+        long finalNumValStrAllocated = ValString.NumInstancesInUse;
+        long finalNumValMapAllocated = ValMap.NumInstancesInUse;
+        long finalNumValListAllocated = ValList.NumInstancesInUse;
+
+        if (numValNumAllocated != finalNumValNumAllocated)
+            Print(string.Format("Leaking ValNumber, was {0} now {1}", numValNumAllocated, finalNumValNumAllocated));
+        if (numValStrAllocated != finalNumValStrAllocated)
+            Print(string.Format("Leaking ValString, was {0} now {1}", numValStrAllocated, finalNumValStrAllocated));
+        if (numValMapAllocated != finalNumValMapAllocated)
+            Print(string.Format("Leaking ValMap, was {0} now {1}", numValMapAllocated, finalNumValMapAllocated));
+        if (numValListAllocated != finalNumValListAllocated)
+            Print(string.Format("Leaking ValList, was {0} now {1}", numValListAllocated, finalNumValListAllocated));
 	}
 
 	static void RunTestSuite(string path) {
@@ -135,7 +155,8 @@ class MainClass {
 		//UnitTest.Run();
 
 		Print("Running test suite.\n");
-        RunTestSuite("../../../TestSuite.txt");
+        //RunTestSuite("../../../TestSuite.txt");
+        RunTestSuite("../../../TestSuite_min.txt");
         //RunTestSuite("../../../TestSuite_split.txt");
 
         Print("\n");
