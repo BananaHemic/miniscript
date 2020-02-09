@@ -1066,7 +1066,9 @@ namespace Miniscript {
 				RequireToken(tokens, Token.Type.Colon);
 				AllowLineBreak(tokens); // allow a line break after a colon
 				Value value = ParseExpr(tokens);
-				map[key ?? ValNull.instance] = value;
+                // No need to Ref key/value, they belong to Map now
+                map.SetElem(key ?? ValNull.instance, value, false, false);
+				//map[key ?? ValNull.instance] = value;
 				
 				if (RequireEitherToken(tokens, Token.Type.Comma, Token.Type.RCurly).type == Token.Type.RCurly) break;
 			}

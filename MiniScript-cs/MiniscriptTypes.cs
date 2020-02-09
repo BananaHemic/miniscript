@@ -1244,7 +1244,7 @@ namespace Miniscript {
 		public override void SetElem(Value index, Value value) {
             SetElem(index, value, true);
 		}
-		public void SetElem(Value index, Value value, bool takeValueRef) {
+		public void SetElem(Value index, Value value, bool takeValueRef, bool takeIndexRef=true) {
             //Console.WriteLine("Map set elem " + index.ToString() + ": " + value.ToString());
             if (takeValueRef)
             {
@@ -1269,10 +1269,13 @@ namespace Miniscript {
                 }
                 else
                 {
-                    // If the index/value is poolable, ref it
-                    PoolableValue indexPool = index as PoolableValue;
-                    if(indexPool != null)
-                        indexPool.Ref();
+                    if (takeIndexRef)
+                    {
+                        // If the index/value is poolable, ref it
+                        PoolableValue indexPool = index as PoolableValue;
+                        if(indexPool != null)
+                            indexPool.Ref();
+                    }
                     map[index] = value;
                 }
 			}
