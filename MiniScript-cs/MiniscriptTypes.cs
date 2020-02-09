@@ -637,6 +637,7 @@ namespace Miniscript {
 
         public static ValList Create(int capacity=0)
         {
+            //Console.WriteLine("ValList create");
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValList>();
             else
@@ -652,6 +653,25 @@ namespace Miniscript {
 
             _numInstancesAllocated++;
             return new ValList(capacity, true);
+        }
+        public override void Ref()
+        {
+            base.Ref();
+        }
+        public override void Unref()
+        {
+            base.Unref();
+        }
+        protected override void ResetState()
+        {
+            for(int i = 0; i < values.Count;i++)
+            {
+                PoolableValue valPool = values[i] as PoolableValue;
+                if (valPool != null)
+                    valPool.Unref();
+            }
+            //Console.WriteLine("ValList back in pool");
+            values.Clear();
         }
         private ValList(int capacity, bool poolable) : base(poolable) {
             values = new List<Value>(capacity);
@@ -680,22 +700,11 @@ namespace Miniscript {
             if (values.Capacity < capacity)
                 values.Capacity = capacity; //TODO maybe enfore this being a PoT?
         }
-        protected override void ResetState()
-        {
-            for(int i = 0; i < values.Count;i++)
-            {
-                PoolableValue valPool = values[i] as PoolableValue;
-                if (valPool != null)
-                    valPool.Unref();
-            }
-            //Console.WriteLine("ValList back in pool");
-            values.Clear();
-        }
         protected override void ReturnToPool()
         {
             if (!base._poolable)
                 return;
-            if (_valuePool != null)
+            if (_valuePool == null)
                 _valuePool = new ValuePool<ValList>();
             _valuePool.ReturnToPool(this);
         }
@@ -739,7 +748,7 @@ namespace Miniscript {
 			// This is used when a list literal appears in the source, to
 			// ensure that each time that code executes, we get a new, distinct
 			// mutable object, rather than the same object multiple times.
-			var result = ValList.Create();
+			var result = ValList.Create(values.Count);
 			for (var i = 0; i < values.Count; i++) {
                 //TODO this may be double Ref()ing
 				result.Add(values[i] == null ? null : values[i].Val(context, true));
