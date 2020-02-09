@@ -692,9 +692,9 @@ namespace Miniscript {
             for(int i = 0; i < recvValues.Count;i++)
             {
                 Value value = recvValues[i];
-                PoolableValue valPool = value as PoolableValue;
-                if (valPool != null)
-                    valPool.Ref();
+                //PoolableValue valPool = value as PoolableValue;
+                //if (valPool != null)
+                //    valPool.Ref();
                 values.Add(value);
             }
         }
@@ -753,7 +753,9 @@ namespace Miniscript {
 			// mutable object, rather than the same object multiple times.
 			var result = ValList.Create(values.Count);
 			for (var i = 0; i < values.Count; i++) {
-				result.Add(values[i] == null ? null : values[i].Val(context, true), false);
+                // Sometimes Val is a ValTemp that returns a value that should be reffed
+                // so we Val without Refing, then Ref during Add
+				result.Add(values[i] == null ? null : values[i].Val(context, false), true);
 			}
 			return result;
 		}
