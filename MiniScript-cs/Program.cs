@@ -66,6 +66,7 @@ class MainClass {
 			}
 		}
 
+        miniscript.Dispose();
         long finalNumValNumAllocated = ValNumber.NumInstancesInUse;
         long finalNumValStrAllocated = ValString.NumInstancesInUse;
         long finalNumValMapAllocated = ValMap.NumInstancesInUse;

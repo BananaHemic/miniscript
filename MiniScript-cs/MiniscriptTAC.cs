@@ -877,7 +877,7 @@ namespace Miniscript {
 		/// keeps the context stack, keeps track of run time, and provides 
 		/// methods to step, stop, or reset the program.		
 		/// </summary>
-		public class Machine {
+		public class Machine : IDisposable {
 			public WeakReference interpreter;		// interpreter hosting this machine
 			public TextOutputMethod standardOutput;	// where print() results should go
 			public bool storeImplicit = false;		// whether to store implicit values (e.g. for REPL)
@@ -1053,6 +1053,19 @@ namespace Miniscript {
 				Intrinsic.shortNames.TryGetValue(val, out result);
 				return result;
 			}
+
+            public void Dispose()
+            {
+                if(stack != null)
+                {
+                    while (stack.Count > 0)
+                    {
+                        Context c = stack.Pop();
+                        c.Dispose();
+                    }
+                }
+                stack = null;
+            }
 		}
 
 		public static void Dump(List<Line> lines) {

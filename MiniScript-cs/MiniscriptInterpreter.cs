@@ -24,7 +24,7 @@ namespace Miniscript {
 	/// <summary>
 	/// Interpreter: an object that contains and runs one MiniScript script.
 	/// </summary>
-	public class Interpreter {
+	public class Interpreter : IDisposable {
 		
 		/// <summary>
 		/// standardOutput: receives the output of the "print" intrinsic.
@@ -298,5 +298,11 @@ namespace Miniscript {
 		protected virtual void ReportError(MiniscriptException mse) {
 			errorOutput.Invoke(mse.Description());
 		}
+        public void Dispose()
+        {
+            if (vm != null)
+                vm.Dispose();
+            vm = null;
+        }
 	}
 }
