@@ -166,6 +166,8 @@ namespace Miniscript {
 		// Handy reference to the top of outputStack.
 		ParseState output;
 
+        readonly List<ParseState> _poppedParseStates = new List<ParseState>();
+
 		// A new parse state that needs to be pushed onto the stack, as soon as we
 		// finish with the current line we're working on:
 		ParseState pendingState = null;
@@ -176,6 +178,9 @@ namespace Miniscript {
 
         public void Dispose()
         {
+            for(int i = 0; i < _poppedParseStates.Count; i++)
+                _poppedParseStates[i].Dispose();
+            _poppedParseStates.Clear();
             if(outputStack != null)
             {
                 while(outputStack.Count > 0)
@@ -338,7 +343,7 @@ namespace Miniscript {
 				if (tokens.Peek().type == Token.Type.Keyword && tokens.Peek().text == "end function") {
 					tokens.Dequeue();
 					if (outputStack.Count > 1) {
-						outputStack.Pop();
+                        _poppedParseStates.Add(outputStack.Pop());
 						output = outputStack.Peek();
 					} else {
 						CompilerException e = new CompilerException("'end function' without matching block starter");
