@@ -670,6 +670,11 @@ namespace Miniscript {
 			}
 
 			public void SetVar(Value identifier, Value value) {
+
+                ValNumber tmp = value as ValNumber;
+                if (tmp != null && tmp.value == 2)
+                { }
+
 				if (variables == null) variables = ValMap.Create();
 				if (variables.assignOverride == null || !variables.assignOverride(identifier, value)) {
                     variables[identifier] = value;
@@ -677,6 +682,9 @@ namespace Miniscript {
 			}
             public void SetVar(string identifier, Value value)
             {
+                ValNumber tmp = value as ValNumber;
+                if (tmp != null && tmp.value == 2)
+                { }
                 if (identifier == "globals" || identifier == "locals") {
 					throw new RuntimeException("can't assign to " + identifier);
 				}
@@ -853,6 +861,9 @@ namespace Miniscript {
 				for (int i = 0; i < argCount; i++) {
 					// Careful -- when we pop them off, they're in reverse order.
 					Value argument = args.Pop();
+                    PoolableValue poolArg = argument as PoolableValue;
+                    if (poolArg != null)
+                        poolArg.Ref();
 					int paramNum = argCount - 1 - i + selfParam;
 					if (paramNum >= func.parameters.Count) {
 						throw new TooManyArgumentsException();

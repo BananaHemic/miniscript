@@ -349,6 +349,8 @@ namespace Miniscript {
             {
                 //Console.WriteLine("Recyclying val " + value);
             }
+            if (base._refCount == 0)
+                Console.WriteLine("Extra unref Val: " + value);
             base.Unref();
         }
         public override void Ref()
