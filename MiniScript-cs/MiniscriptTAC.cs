@@ -1036,13 +1036,13 @@ namespace Miniscript {
 						stack.Push(nextContext);
 					} else {
                         // The line.rhsA.Val doesn't call PoolableValue Val() when rhs is a ValVar, so we
-                        // need to make sure to ref the value here
-                        //TODO we may want to just make ValVar do the Ref() instead
-                        if(line.rhsA is ValVar)
+                        // need to make sure to ref the value here, if the result of this operation is
+                        // going into a ValVar
+                        if(line.lhs is ValVar && line.rhsA is ValVar)
                         {
-                            //PoolableValue poolableValue = funcVal as PoolableValue;
-                            //if (poolableValue != null)
-                                //poolableValue.Ref();
+                            PoolableValue poolableValue = funcVal as PoolableValue;
+                            if (poolableValue != null)
+                                poolableValue.Ref();
                         }
 						context.StoreValue(line.lhs, funcVal);
 					}
