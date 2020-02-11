@@ -1089,6 +1089,7 @@ namespace Miniscript {
 					Value val = line.Evaluate(context);
                     bool unrefWhenDone = false
                         || line.op == Line.Op.CallIntrinsicA // Intrinsics return a value that should be unreffed when done
+                        || line.op == Line.Op.CopyA         // If we just copied into a new val, then this should be unreffed when done
                         ;
 					context.StoreValue(line.lhs, val, unrefWhenDone);
 				}
