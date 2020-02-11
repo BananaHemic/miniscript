@@ -997,7 +997,7 @@ namespace Miniscript {
 					// the previous part of the sequence, so we can build on it.
 					val = FullyEvaluate(val);
 					// Now build the lookup.
-					val = new ValSeqElem(val, ValString.Create(nextIdent.text));
+					val = ValSeqElem.Create(val, ValString.Create(nextIdent.text));
 					if (tokens.Peek().type == Token.Type.LParen && !tokens.Peek().afterSpace) {
 						// If this new element is followed by parens, we need to
 						// parse it as a call right away.
@@ -1038,7 +1038,7 @@ namespace Miniscript {
 									output.Add(new Line(temp, Line.Op.ElemBofA, vsVal.sequence, vsVal.index));
 									val = temp;
 								}
-								val = new ValSeqElem(val, index);
+								val = ValSeqElem.Create(val, index);
 							} else {
 								// Anywhere else in an expression, we can compile the lookup right away.
 								ValTemp temp = new ValTemp(output.nextTempNum++);

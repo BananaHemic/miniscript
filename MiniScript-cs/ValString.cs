@@ -48,8 +48,8 @@ namespace Miniscript
                     return lenStr;
             }
 
-            //Console.WriteLine("Alloc str \"" + val + "\"");
-            if (val == "zzz")
+            Console.WriteLine("Alloc str \"" + val + "\"");
+            if (val == "r")
             { }
 
             if (_valuePool == null)
@@ -76,9 +76,10 @@ namespace Miniscript
         {
             if (!base._poolable)
                 return;
-            //if (value == "zzz")
+            if (value == "r")
+            { }
                 //Console.WriteLine("Str " + value + " ref, ref count #" + _refCount);
-            base.Ref();
+                base.Ref();
         }
         public override void Unref()
         {
@@ -88,15 +89,15 @@ namespace Miniscript
             {
                 Console.WriteLine("Extra unref for: " + value);
             }
-            //if (value == "s")
-            //{ }
+            if (value == "r")
+            { }
             base.Unref();
             //if (value == "zzz")
                 //Console.WriteLine("Str " + value + " unref, ref count #" + _refCount);
         }
         protected override void ResetState()
         {
-            //Console.WriteLine("Str \"" + value + "\" back in pool");
+            Console.WriteLine("Str \"" + value + "\" back in pool");
             //value = null;
         }
         protected override void ReturnToPool()

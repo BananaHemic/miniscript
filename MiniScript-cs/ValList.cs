@@ -28,7 +28,7 @@ namespace Miniscript
 
         public static ValList Create(int capacity=0)
         {
-            Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
+            //Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
             if(_num == 2)
             { }
             if (_valuePool == null)
@@ -68,7 +68,7 @@ namespace Miniscript
                 if (valPool != null)
                     valPool.Unref();
             }
-            Console.WriteLine("ValList #" + _id + " back in pool");
+            //Console.WriteLine("ValList #" + _id + " back in pool");
             values.Clear();
         }
         private ValList(int capacity, bool poolable) : base(poolable) {

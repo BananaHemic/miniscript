@@ -456,7 +456,7 @@ namespace Miniscript
                     // map lookup
                     // (note, cases where opB is a string are handled above, along with
                     // all the other types; so we'll only get here for non-string cases)
-                    ValSeqElem se = new ValSeqElem(opA, opB);
+                    ValSeqElem se = ValSeqElem.Create(opA, opB);
                     return se.Val(context, true);
                     // (This ensures we walk the "__isa" chain in the standard way.)
                 } else if (op == Op.ElemBofIterA) {

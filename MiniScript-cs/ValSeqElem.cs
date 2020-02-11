@@ -6,24 +6,70 @@ using System.Threading.Tasks;
 
 namespace Miniscript
 {
-	public class ValSeqElem : Value {
+	public class ValSeqElem : PoolableValue {
+        [ThreadStatic]
+        protected static ValuePool<ValSeqElem> _valuePool;
+        [ThreadStatic]
+        protected static uint _numInstancesAllocated = 0;
+        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
+
 		public Value sequence;
 		public Value index;
 		public bool noInvoke;	// reflects use of "@" (address-of) operator
 
-		public ValSeqElem(Value sequence, Value index) {
+        public static ValSeqElem Create(Value sequence, Value index)
+        {
+            if (_valuePool == null)
+                _valuePool = new ValuePool<ValSeqElem>();
+            else
+            {
+                ValSeqElem val = _valuePool.GetInstance();
+                if(val != null)
+                {
+                    val.sequence = sequence;
+                    val.index = index;
+                    val._refCount = 1;
+                    return val;
+                }
+            }
+            _numInstancesAllocated++;
+            return new ValSeqElem(sequence, index);
+        }
+
+        private ValSeqElem(Value sequence, Value index) : base(true){
 			this.sequence = sequence;
 			this.index = index;
 		}
 
-		/// <summary>
-		/// Look up the given identifier in the given sequence, walking the type chain
-		/// until we either find it, or fail.
-		/// </summary>
-		/// <param name="sequence">Sequence (object) to look in.</param>
-		/// <param name="identifier">Identifier to look for.</param>
-		/// <param name="context">Context.</param>
-		public static Value Resolve(Value sequence, string identifier, Context context, out ValMap valueFoundIn) {
+        public override void Ref()
+        {
+            base.Ref();
+        }
+        public override void Unref()
+        {
+            base.Unref();
+        }
+        protected override void ResetState()
+        {
+            if(sequence != null)
+                sequence.Unref();
+            sequence = null;
+            if(index != null)
+                index.Unref();
+            index = null;
+        }
+        protected override void ReturnToPool()
+        {
+        }
+
+        /// <summary>
+        /// Look up the given identifier in the given sequence, walking the type chain
+        /// until we either find it, or fail.
+        /// </summary>
+        /// <param name="sequence">Sequence (object) to look in.</param>
+        /// <param name="identifier">Identifier to look for.</param>
+        /// <param name="context">Context.</param>
+        public static Value Resolve(Value sequence, string identifier, Context context, out ValMap valueFoundIn) {
 			var includeMapType = true;
 			valueFoundIn = null;
 			int loopsLeft = 1000;		// (max __isa chain depth)
