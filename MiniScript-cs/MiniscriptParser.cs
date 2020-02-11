@@ -33,12 +33,12 @@ namespace Miniscript {
 		}
 
 		class ParseState : IDisposable {
-			public List<TAC.Line> code = new List<TAC.Line>();
+			public List<Line> code = new List<Line>();
 			public List<BackPatch> backpatches = new List<BackPatch>();
 			public List<JumpPoint> jumpPoints = new List<JumpPoint>();
 			public int nextTempNum = 0;
 
-			public void Add(TAC.Line line) {
+			public void Add(Line line) {
 				code.Add(line);
 			}
 
@@ -79,8 +79,8 @@ namespace Miniscript {
 			public bool IsJumpTarget(int lineNum) {
 				for (int i=0; i < code.Count; i++) {
 					var op = code[i].op;
-					if ((op == TAC.Line.Op.GotoA || op == TAC.Line.Op.GotoAifB 
-					 || op == TAC.Line.Op.GotoAifNotB || op == TAC.Line.Op.GotoAifTrulyB)
+					if ((op == Line.Op.GotoA || op == Line.Op.GotoAifB 
+					 || op == Line.Op.GotoAifNotB || op == Line.Op.GotoAifTrulyB)
 					 && code[i].rhsA is ValNumber && code[i].rhsA.IntValue() == lineNum) return true;
 				}
 				for (int i=0; i<jumpPoints.Count(); i++) {
@@ -290,9 +290,9 @@ namespace Miniscript {
 		/// </summary>
 		/// <param name="standardOutput"></param>
 		/// <returns></returns>
-		public TAC.Machine CreateVM(TextOutputMethod standardOutput) {
-			TAC.Context root = TAC.Context.Create(output.code);
-			return new TAC.Machine(root, standardOutput);
+		public Machine CreateVM(TextOutputMethod standardOutput) {
+			Context root = Context.Create(output.code);
+			return new Machine(root, standardOutput);
 		}
 		
 		/// <summary>
@@ -304,7 +304,7 @@ namespace Miniscript {
 		public Function CreateImport() {
 			// Add one additional line to return `locals` as the function return value.
 			ValVar locals = new ValVar("locals");
-			output.Add(new TAC.Line(TAC.LTemp(0), TAC.Line.Op.ReturnA, locals));
+			output.Add(new Line(TAC.LTemp(0), Line.Op.ReturnA, locals));
 			// Then wrap the whole thing in a Function.
 			var result = new Function(output.code);
 			return result;
@@ -314,7 +314,7 @@ namespace Miniscript {
 			Parse(line);
 			TAC.Dump(output.code);
 
-			TAC.Machine vm = CreateVM(null);
+			Machine vm = CreateVM(null);
 			while (!vm.done) vm.Step();
 		}
 
@@ -380,7 +380,7 @@ namespace Miniscript {
 						if (tokens.Peek().type != Token.Type.EOL) {
 							returnValue = ParseExpr(tokens);
 						}
-						output.Add(new TAC.Line(TAC.LTemp(0), TAC.Line.Op.ReturnA, returnValue));
+						output.Add(new Line(TAC.LTemp(0), Line.Op.ReturnA, returnValue));
 					}
 					break;
 				case "if":
@@ -390,7 +390,7 @@ namespace Miniscript {
 						// OK, now we need to emit a conditional branch, but keep track of this
 						// on a stack so that when we get the corresponding "else" or  "end if", 
 						// we can come back and patch that jump to the right place.
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoAifNotB, null, condition));
+						output.Add(new Line(null, Line.Op.GotoAifNotB, null, condition));
 
 						// ...but if blocks also need a special marker in the backpack stack
 						// so we know where to stop when patching up (possibly multiple) 'end if' jumps.
@@ -424,7 +424,7 @@ namespace Miniscript {
 						StartElseClause();
 						Value condition = ParseExpr(tokens);
 						RequireToken(tokens, Token.Type.Keyword, "then");
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoAifNotB, null, condition));
+						output.Add(new Line(null, Line.Op.GotoAifNotB, null, condition));
 						output.AddBackpatch("else");
 					}
 					break;
@@ -445,7 +445,7 @@ namespace Miniscript {
 						// OK, now we need to emit a conditional branch, but keep track of this
 						// on a stack so that when we get the corresponding "end while", 
 						// we can come back and patch that jump to the right place.
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoAifNotB, null, condition));
+						output.Add(new Line(null, Line.Op.GotoAifNotB, null, condition));
 						output.AddBackpatch("end while");
 					}
 					break;
@@ -453,7 +453,7 @@ namespace Miniscript {
 					{
 						// Unconditional jump back to the top of the while loop.
 						JumpPoint jump = output.CloseJumpPoint("while");
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoA, TAC.Num(jump.lineNum)));
+						output.Add(new Line(null, Line.Op.GotoA, TAC.Num(jump.lineNum)));
 						// Then, backpatch the open "while" branch to here, right after the loop.
 						// And also patch any "break" branches emitted after that point.
 						output.Patch(keyword, true);
@@ -474,30 +474,30 @@ namespace Miniscript {
 
 						// Create an index variable to iterate over the sequence, initialized to -1.
 						ValVar idxVar = new ValVar("__" + loopVarTok.text + "_idx");
-						output.Add(new TAC.Line(idxVar, TAC.Line.Op.AssignA, TAC.Num(-1)));
+						output.Add(new Line(idxVar, Line.Op.AssignA, TAC.Num(-1)));
 
 						// We need to note the current line, so we can jump back up to it at the end.
 						output.AddJumpPoint(keyword);
 
 						// Now increment the index variable, and branch to the end if it's too big.
 						// (We'll have to backpatch this branch later.)
-						output.Add(new TAC.Line(idxVar, TAC.Line.Op.APlusB, idxVar, TAC.Num(1)));
+						output.Add(new Line(idxVar, Line.Op.APlusB, idxVar, TAC.Num(1)));
 						ValTemp sizeOfSeq = new ValTemp(output.nextTempNum++);
-						output.Add(new TAC.Line(sizeOfSeq, TAC.Line.Op.LengthOfA, stuff));
+						output.Add(new Line(sizeOfSeq, Line.Op.LengthOfA, stuff));
 						ValTemp isTooBig = new ValTemp(output.nextTempNum++);
-						output.Add(new TAC.Line(isTooBig, TAC.Line.Op.AGreatOrEqualB, idxVar, sizeOfSeq));
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoAifB, null, isTooBig));
+						output.Add(new Line(isTooBig, Line.Op.AGreatOrEqualB, idxVar, sizeOfSeq));
+						output.Add(new Line(null, Line.Op.GotoAifB, null, isTooBig));
 						output.AddBackpatch("end for");
 
 						// Otherwise, get the sequence value into our loop variable.
-						output.Add(new TAC.Line(loopVar, TAC.Line.Op.ElemBofIterA, stuff, idxVar));
+						output.Add(new Line(loopVar, Line.Op.ElemBofIterA, stuff, idxVar));
 					}
 					break;
 				case "end for":
 					{
 						// Unconditional jump back to the top of the for loop.
 						JumpPoint jump = output.CloseJumpPoint("for");
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoA, TAC.Num(jump.lineNum)));
+						output.Add(new Line(null, Line.Op.GotoA, TAC.Num(jump.lineNum)));
 						// Then, backpatch the open "for" branch to here, right after the loop.
 						// And also patch any "break" branches emitted after that point.
 						output.Patch(keyword, true);
@@ -506,7 +506,7 @@ namespace Miniscript {
 				case "break":
 					{
 						// Emit a jump to the end, to get patched up later.
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoA));
+						output.Add(new Line(null, Line.Op.GotoA));
 						output.AddBackpatch("break");
 					}
 					break;
@@ -518,7 +518,7 @@ namespace Miniscript {
 								"'continue' without open loop block");
 						}
 						JumpPoint jump = output.jumpPoints.Last();
-						output.Add(new TAC.Line(null, TAC.Line.Op.GotoA, TAC.Num(jump.lineNum)));
+						output.Add(new Line(null, Line.Op.GotoA, TAC.Num(jump.lineNum)));
 					}
 					break;
 				default:
@@ -547,7 +547,7 @@ namespace Miniscript {
 			// Back-patch the open if block, but leaving room for the jump:
 			// Emit the jump from the current location, which is the end of an if-block,
 			// to the end of the else block (which we'll have to back-patch later).
-			output.Add(new TAC.Line(null, TAC.Line.Op.GotoA, null));
+			output.Add(new Line(null, Line.Op.GotoA, null));
 			// Back-patch the previously open if-block to jump here (right past the goto).
 			output.Patch("else");
 			// And open a new back-patch for this goto (which will jump all the way to the end if).
@@ -562,7 +562,7 @@ namespace Miniscript {
 					(peek.type == Token.Type.Keyword && peek.text == "else")) {
 				// No explicit assignment; store an implicit result
 				rhs = FullyEvaluate(expr);
-				output.Add(new TAC.Line(null, TAC.Line.Op.AssignImplicit, rhs));
+				output.Add(new Line(null, Line.Op.AssignImplicit, rhs));
 				return;
 			}
 			if (peek.type == Token.Type.OpAssign) {
@@ -576,7 +576,7 @@ namespace Miniscript {
 				int argCount = 0;
 				while (true) {
 					Value arg = ParseExpr(tokens);
-					output.Add(new TAC.Line(null, TAC.Line.Op.PushParam, arg));
+					output.Add(new Line(null, Line.Op.PushParam, arg));
 					argCount++;
 					if (tokens.Peek().type == Token.Type.EOL) break;
 					if (tokens.Peek().type == Token.Type.Keyword && tokens.Peek().text == "else") break;
@@ -588,8 +588,8 @@ namespace Miniscript {
 					if (RequireEitherToken(tokens, Token.Type.Comma, Token.Type.EOL).type == Token.Type.EOL) break;
 				}
 				ValTemp result = new ValTemp(output.nextTempNum++);
-				output.Add(new TAC.Line(result, TAC.Line.Op.CallFunctionA, funcRef, TAC.Num(argCount)));					
-				output.Add(new TAC.Line(null, TAC.Line.Op.AssignImplicit, result));
+				output.Add(new Line(result, Line.Op.CallFunctionA, funcRef, TAC.Num(argCount)));					
+				output.Add(new Line(null, Line.Op.AssignImplicit, result));
 				return;
 			}
 
@@ -598,7 +598,7 @@ namespace Miniscript {
 			// assign to our lhs instead.  BUT, we must not do this if there are any jumps to the next
 			// line, as may happen due to short-cut evaluation (issue #6).
 			if (rhs is ValTemp && output.code.Count > 0 && !output.IsJumpTarget(output.code.Count)) {			
-				TAC.Line line = output.code[output.code.Count - 1];
+				Line line = output.code[output.code.Count - 1];
 				if (line.lhs.Equals(rhs)) {
 					// Yep, that's the case.  Patch it up.
 					line.lhs = lhs;
@@ -606,7 +606,7 @@ namespace Miniscript {
 				}
 			}
 			// In any other case, do an assignment statement to our lhs.
-			output.Add(new TAC.Line(lhs, TAC.Line.Op.AssignA, rhs));
+			output.Add(new Line(lhs, Line.Op.AssignA, rhs));
 		}
 
 		Value ParseExpr(Lexer tokens, bool asLval=false, bool statementStart=false) {
@@ -657,14 +657,14 @@ namespace Miniscript {
 			// Create a function object attached to the new parse state code.
 			func.code = pendingState.code;
 			var valFunc = new ValFunction(func);
-			output.Add(new TAC.Line(null, TAC.Line.Op.BindContextOfA, valFunc));
+			output.Add(new Line(null, Line.Op.BindContextOfA, valFunc));
 			return valFunc;
 		}
 
 		Value ParseOr(Lexer tokens, bool asLval=false, bool statementStart=false) {
 			ExpressionParsingMethod nextLevel = ParseAnd;
 			Value val = nextLevel(tokens, asLval, statementStart);
-			List<TAC.Line> jumpLines = null;
+			List<Line> jumpLines = null;
 			Token tok = tokens.Peek();
 			while (tok.type == Token.Type.Keyword && tok.text == "or") {
 				tokens.Dequeue();		// discard "or"
@@ -677,9 +677,9 @@ namespace Miniscript {
 				// usual GotoAifB opcode won't work here, without breaking
 				// our calculation of intermediate truth.  We need to jump
 				// only if our truth value is >= 1 (i.e. absolutely true).
-				TAC.Line jump = new TAC.Line(null, TAC.Line.Op.GotoAifTrulyB, null, val);
+				Line jump = new Line(null, Line.Op.GotoAifTrulyB, null, val);
 				output.Add(jump);
-				if (jumpLines == null) jumpLines = new List<TAC.Line>();
+				if (jumpLines == null) jumpLines = new List<Line>();
 				jumpLines.Add(jump);
 
                 PoolableValue poolVal = val as PoolableValue;
@@ -688,7 +688,7 @@ namespace Miniscript {
 
 				Value opB = nextLevel(tokens);
 				int tempNum = output.nextTempNum++;
-				output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.AOrB, val, opB));
+				output.Add(new Line(TAC.LTemp(tempNum), Line.Op.AOrB, val, opB));
 				val = TAC.RTemp(tempNum);
 
 				tok = tokens.Peek();
@@ -698,9 +698,9 @@ namespace Miniscript {
 			// to copy the short-circuit result (always 1) to our output temp.
 			// And anything else needs to skip over that.  So:
 			if (jumpLines != null) {
-				output.Add(new TAC.Line(null, TAC.Line.Op.GotoA, TAC.Num(output.code.Count+2)));	// skip over this line:
-				output.Add(new TAC.Line(val, TAC.Line.Op.AssignA, ValNumber.one));	// result = 1
-				foreach (TAC.Line jump in jumpLines) {
+				output.Add(new Line(null, Line.Op.GotoA, TAC.Num(output.code.Count+2)));	// skip over this line:
+				output.Add(new Line(val, Line.Op.AssignA, ValNumber.one));	// result = 1
+				foreach (Line jump in jumpLines) {
 					jump.rhsA = TAC.Num(output.code.Count-1);	// short-circuit to the above result=1 line
 				}
 			}
@@ -711,7 +711,7 @@ namespace Miniscript {
 		Value ParseAnd(Lexer tokens, bool asLval=false, bool statementStart=false) {
 			ExpressionParsingMethod nextLevel = ParseNot;
 			Value val = nextLevel(tokens, asLval, statementStart);
-			List<TAC.Line> jumpLines = null;
+			List<Line> jumpLines = null;
 			Token tok = tokens.Peek();
 			while (tok.type == Token.Type.Keyword && tok.text == "and") {
 				tokens.Dequeue();		// discard "and"
@@ -723,16 +723,16 @@ namespace Miniscript {
 
 				// Set up a short-circuit jump based on the current value; 
 				// we'll fill in the jump destination later.
-				TAC.Line jump = new TAC.Line(null, TAC.Line.Op.GotoAifNotB, null, val);
+				Line jump = new Line(null, Line.Op.GotoAifNotB, null, val);
 				output.Add(jump);
-				if (jumpLines == null) jumpLines = new List<TAC.Line>();
+				if (jumpLines == null) jumpLines = new List<Line>();
 				jumpLines.Add(jump);
 
 				Value opB = nextLevel(tokens, asLval, statementStart);
 				int tempNum = output.nextTempNum++;
                 if (poolVal != null)
                     poolVal.Ref();
-				output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.AAndB, val, opB));
+				output.Add(new Line(TAC.LTemp(tempNum), Line.Op.AAndB, val, opB));
 				val = TAC.RTemp(tempNum);
 
 				tok = tokens.Peek();
@@ -742,9 +742,9 @@ namespace Miniscript {
 			// to copy the short-circuit result (always 0) to our output temp.
 			// And anything else needs to skip over that.  So:
 			if (jumpLines != null) {
-				output.Add(new TAC.Line(null, TAC.Line.Op.GotoA, TAC.Num(output.code.Count+2)));	// skip over this line:
-				output.Add(new TAC.Line(val, TAC.Line.Op.AssignA, ValNumber.zero));	// result = 0
-				foreach (TAC.Line jump in jumpLines) {
+				output.Add(new Line(null, Line.Op.GotoA, TAC.Num(output.code.Count+2)));	// skip over this line:
+				output.Add(new Line(val, Line.Op.AssignA, ValNumber.zero));	// result = 0
+				foreach (Line jump in jumpLines) {
 					jump.rhsA = TAC.Num(output.code.Count-1);	// short-circuit to the above result=0 line
 				}
 			}
@@ -763,7 +763,7 @@ namespace Miniscript {
 
 				val = nextLevel(tokens);
 				int tempNum = output.nextTempNum++;
-				output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.NotA, val));
+				output.Add(new Line(TAC.LTemp(tempNum), Line.Op.NotA, val));
 				val = TAC.RTemp(tempNum);
 			} else {
 				val = nextLevel(tokens, asLval, statementStart
@@ -780,7 +780,7 @@ namespace Miniscript {
 				AllowLineBreak(tokens); // allow a line break after a binary operator
 				Value opB = nextLevel(tokens);
 				int tempNum = output.nextTempNum++;
-				output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.AisaB, val, opB));
+				output.Add(new Line(TAC.LTemp(tempNum), Line.Op.AisaB, val, opB));
 				val = TAC.RTemp(tempNum);
 			}
 			return val;
@@ -790,11 +790,11 @@ namespace Miniscript {
 			ExpressionParsingMethod nextLevel = ParseAddSub;
 			Value val = nextLevel(tokens, asLval, statementStart);
 			Value opA = val;
-			TAC.Line.Op opcode = ComparisonOp(tokens.Peek().type);
+			Line.Op opcode = ComparisonOp(tokens.Peek().type);
 			// Parse a string of comparisons, all multiplied together
 			// (so every comparison must be true for the whole expression to be true).
 			bool firstComparison = true;
-			while (opcode != TAC.Line.Op.Noop) {
+			while (opcode != Line.Op.Noop) {
 				tokens.Dequeue();	// discard the operator (we have the opcode)
 				opA = FullyEvaluate(opA);
 
@@ -802,12 +802,12 @@ namespace Miniscript {
 
 				Value opB = nextLevel(tokens);
 				int tempNum = output.nextTempNum++;
-				output.Add(new TAC.Line(TAC.LTemp(tempNum), opcode,	opA, opB));
+				output.Add(new Line(TAC.LTemp(tempNum), opcode,	opA, opB));
 				if (firstComparison) {
 					firstComparison = false;
 				} else {
 					tempNum = output.nextTempNum++;
-					output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.ATimesB, val, TAC.RTemp(tempNum - 1)));
+					output.Add(new Line(TAC.LTemp(tempNum), Line.Op.ATimesB, val, TAC.RTemp(tempNum - 1)));
 				}
 				val = TAC.RTemp(tempNum);
 				opA = opB;
@@ -818,15 +818,15 @@ namespace Miniscript {
 
 		// Find the TAC operator that corresponds to the given token type,
 		// for comparisons.  If it's not a comparison operator, return TAC.Line.Op.Noop.
-		static TAC.Line.Op ComparisonOp(Token.Type tokenType) {
+		static Line.Op ComparisonOp(Token.Type tokenType) {
 			switch (tokenType) {
-			case Token.Type.OpEqual:		return TAC.Line.Op.AEqualB;
-			case Token.Type.OpNotEqual:		return TAC.Line.Op.ANotEqualB;
-			case Token.Type.OpGreater:		return TAC.Line.Op.AGreaterThanB;
-			case Token.Type.OpGreatEqual:	return TAC.Line.Op.AGreatOrEqualB;
-			case Token.Type.OpLesser:		return TAC.Line.Op.ALessThanB;
-			case Token.Type.OpLessEqual:	return TAC.Line.Op.ALessOrEqualB;
-			default: return TAC.Line.Op.Noop;
+			case Token.Type.OpEqual:		return Line.Op.AEqualB;
+			case Token.Type.OpNotEqual:		return Line.Op.ANotEqualB;
+			case Token.Type.OpGreater:		return Line.Op.AGreaterThanB;
+			case Token.Type.OpGreatEqual:	return Line.Op.AGreatOrEqualB;
+			case Token.Type.OpLesser:		return Line.Op.ALessThanB;
+			case Token.Type.OpLessEqual:	return Line.Op.ALessOrEqualB;
+			default: return Line.Op.Noop;
 			}
 		}
 
@@ -844,8 +844,8 @@ namespace Miniscript {
 				val = FullyEvaluate(val);
 				Value opB = nextLevel(tokens);
 				int tempNum = output.nextTempNum++;
-				output.Add(new TAC.Line(TAC.LTemp(tempNum), 
-					tok.type == Token.Type.OpPlus ? TAC.Line.Op.APlusB : TAC.Line.Op.AMinusB,
+				output.Add(new Line(TAC.LTemp(tempNum), 
+					tok.type == Token.Type.OpPlus ? Line.Op.APlusB : Line.Op.AMinusB,
 					val, opB));
 				val = TAC.RTemp(tempNum);
 
@@ -868,13 +868,13 @@ namespace Miniscript {
 				int tempNum = output.nextTempNum++;
 				switch (tok.type) {
 				case Token.Type.OpTimes:
-					output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.ATimesB, val, opB));
+					output.Add(new Line(TAC.LTemp(tempNum), Line.Op.ATimesB, val, opB));
 					break;
 				case Token.Type.OpDivide:
-					output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.ADividedByB, val, opB));
+					output.Add(new Line(TAC.LTemp(tempNum), Line.Op.ADividedByB, val, opB));
 					break;
 				case Token.Type.OpMod:
-					output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.AModB, val, opB));
+					output.Add(new Line(TAC.LTemp(tempNum), Line.Op.AModB, val, opB));
 					break;
 				}
 				val = TAC.RTemp(tempNum);
@@ -901,7 +901,7 @@ namespace Miniscript {
 			}
 			// Otherwise, subtract it from 0 and return a new temporary.
 			int tempNum = output.nextTempNum++;
-			output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.AMinusB, TAC.Num(0), val));
+			output.Add(new Line(TAC.LTemp(tempNum), Line.Op.AMinusB, TAC.Num(0), val));
 
 			return TAC.RTemp(tempNum);
 		}
@@ -922,7 +922,7 @@ namespace Miniscript {
 			ValMap map = ValMap.Create();
 			map.SetElem(ValString.magicIsA, isa);
 			Value result = new ValTemp(output.nextTempNum++);
-			output.Add(new TAC.Line(result, TAC.Line.Op.CopyA, map));
+			output.Add(new Line(result, Line.Op.CopyA, map));
 			return result;
 		}
 
@@ -952,7 +952,7 @@ namespace Miniscript {
 				val = FullyEvaluate(val);
 				Value opB = nextLevel(tokens);
 				int tempNum = output.nextTempNum++;
-				output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.APowB, val, opB));
+				output.Add(new Line(TAC.LTemp(tempNum), Line.Op.APowB, val, opB));
 				val = TAC.RTemp(tempNum);
 
 				tok = tokens.Peek();
@@ -971,7 +971,7 @@ namespace Miniscript {
 				if (var.identifier == "super" || var.identifier == "self") return val;
 				// Evaluate a variable (which might be a function we need to call).				
 				ValTemp temp = new ValTemp(output.nextTempNum++);
-				output.Add(new TAC.Line(temp, TAC.Line.Op.CallFunctionA, val, ValNumber.zero));
+				output.Add(new Line(temp, Line.Op.CallFunctionA, val, ValNumber.zero));
 				return temp;
 			} else if (val is ValSeqElem) {
 				ValSeqElem elem = ((ValSeqElem)val);
@@ -979,7 +979,7 @@ namespace Miniscript {
 				if (elem.noInvoke) return val;
 				// Evaluate a sequence lookup (which might be a function we need to call).				
 				ValTemp temp = new ValTemp(output.nextTempNum++);
-				output.Add(new TAC.Line(temp, TAC.Line.Op.CallFunctionA, val, ValNumber.zero));
+				output.Add(new Line(temp, Line.Op.CallFunctionA, val, ValNumber.zero));
 				return temp;
 			}
 			return val;
@@ -1035,14 +1035,14 @@ namespace Miniscript {
 								if (val is ValSeqElem) {
 									ValSeqElem vsVal = (ValSeqElem)val;
 									ValTemp temp = new ValTemp(output.nextTempNum++);
-									output.Add(new TAC.Line(temp, TAC.Line.Op.ElemBofA, vsVal.sequence, vsVal.index));
+									output.Add(new Line(temp, Line.Op.ElemBofA, vsVal.sequence, vsVal.index));
 									val = temp;
 								}
 								val = new ValSeqElem(val, index);
 							} else {
 								// Anywhere else in an expression, we can compile the lookup right away.
 								ValTemp temp = new ValTemp(output.nextTempNum++);
-								output.Add(new TAC.Line(temp, TAC.Line.Op.ElemBofA, val, index));
+								output.Add(new Line(temp, Line.Op.ElemBofA, val, index));
 								val = temp;
 							}
 						}
@@ -1086,7 +1086,7 @@ namespace Miniscript {
 				if (RequireEitherToken(tokens, Token.Type.Comma, Token.Type.RCurly).type == Token.Type.RCurly) break;
 			}
 			Value result = new ValTemp(output.nextTempNum++);
-			output.Add(new TAC.Line(result, TAC.Line.Op.CopyA, map));
+			output.Add(new Line(result, Line.Op.CopyA, map));
 			return result;
 		}
 
@@ -1111,7 +1111,7 @@ namespace Miniscript {
 			}
 			if (statementStart) return list;	// return the list as-is for indexed assignment (foo[3]=42)
 			Value result = new ValTemp(output.nextTempNum++);
-			output.Add(new TAC.Line(result, TAC.Line.Op.CopyA, list));	// use COPY on this mutable list!
+			output.Add(new Line(result, Line.Op.CopyA, list));	// use COPY on this mutable list!
 			return result;
 		}
 
@@ -1144,13 +1144,13 @@ namespace Miniscript {
 				} else while (true) {
 					AllowLineBreak(tokens); // allow a line break after a comma or open paren
 					Value arg = ParseExpr(tokens);
-					output.Add(new TAC.Line(null, TAC.Line.Op.PushParam, arg));
+					output.Add(new Line(null, Line.Op.PushParam, arg));
 					argCount++;
 					if (RequireEitherToken(tokens, Token.Type.Comma, Token.Type.RParen).type == Token.Type.RParen) break;
 				}
 			}
 			ValTemp result = new ValTemp(output.nextTempNum++);
-			output.Add(new TAC.Line(result, TAC.Line.Op.CallFunctionA, funcRef, TAC.Num(argCount)));
+			output.Add(new Line(result, Line.Op.CallFunctionA, funcRef, TAC.Num(argCount)));
 			return result;
 		}
 			

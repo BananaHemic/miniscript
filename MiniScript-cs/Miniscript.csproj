@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -35,6 +35,11 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Context.cs" />
+    <Compile Include="Function.cs" />
+    <Compile Include="Line.cs" />
+    <Compile Include="Machine.cs" />
+    <Compile Include="PoolableValue.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Miniscript.cs" />
@@ -47,6 +52,16 @@
     <Compile Include="MiniscriptKeywords.cs" />
     <Compile Include="MiniscriptTypes.cs" />
     <Compile Include="MiniscriptErrors.cs" />
+    <Compile Include="ValFunction.cs" />
+    <Compile Include="ValList.cs" />
+    <Compile Include="ValMap.cs" />
+    <Compile Include="ValNull.cs" />
+    <Compile Include="ValNumber.cs" />
+    <Compile Include="ValSeqElem.cs" />
+    <Compile Include="ValString.cs" />
+    <Compile Include="ValTemp.cs" />
+    <Compile Include="Value.cs" />
+    <Compile Include="ValVar.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

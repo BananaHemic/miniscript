@@ -28,7 +28,7 @@ namespace Miniscript {
 	/// <param name="context">TAC.Context in which the intrinsic was invoked</param>
 	/// <param name="partialResult">partial result from a previous invocation, if any</param>
 	/// <returns>result of the computation: whether it's complete, a partial result if not, and a Value if so</returns>
-	public delegate Intrinsic.Result IntrinsicCode(TAC.Context context, Intrinsic.Result partialResult);
+	public delegate Intrinsic.Result IntrinsicCode(Context context, Intrinsic.Result partialResult);
 	
 	/// <summary>
 	/// Information about the app hosting MiniScript.  Set this in your main program.
@@ -150,8 +150,8 @@ namespace Miniscript {
 			if (function.code == null) {
 				// Our little wrapper function is a single opcode: CallIntrinsicA.
 				// It really exists only to provide a local variable context for the parameters.
-				function.code = new List<TAC.Line>();
-				function.code.Add(new TAC.Line(TAC.LTemp(0), TAC.Line.Op.CallIntrinsicA, TAC.Num(numericID)));
+				function.code = new List<Line>();
+				function.code.Add(new Line(TAC.LTemp(0), Line.Op.CallIntrinsicA, TAC.Num(numericID)));
 			}
 			return valFunction;
 		}
@@ -160,7 +160,7 @@ namespace Miniscript {
 		/// Internally-used function to execute an intrinsic (by ID) given a
 		/// context and a partial result.
 		/// </summary>
-		public static Result Execute(int id, TAC.Context context, Result partialResult) {
+		public static Result Execute(int id, Context context, Result partialResult) {
 			Intrinsic item = GetByID(id);
 			return item.code(context, partialResult);
 		}
@@ -1156,12 +1156,12 @@ namespace Miniscript {
 
 
 		// Helper method to compile a call to Slice (when invoked directly via slice syntax).
-		public static void CompileSlice(List<TAC.Line> code, Value list, Value fromIdx, Value toIdx, int resultTempNum) {
-			code.Add(new TAC.Line(null, TAC.Line.Op.PushParam, list));
-			code.Add(new TAC.Line(null, TAC.Line.Op.PushParam, fromIdx == null ? TAC.Num(0) : fromIdx));
-			code.Add(new TAC.Line(null, TAC.Line.Op.PushParam, toIdx));// toIdx == null ? TAC.Num(0) : toIdx));
+		public static void CompileSlice(List<Line> code, Value list, Value fromIdx, Value toIdx, int resultTempNum) {
+			code.Add(new Line(null, Line.Op.PushParam, list));
+			code.Add(new Line(null, Line.Op.PushParam, fromIdx == null ? TAC.Num(0) : fromIdx));
+			code.Add(new Line(null, Line.Op.PushParam, toIdx));// toIdx == null ? TAC.Num(0) : toIdx));
 			ValFunction func = Intrinsic.GetByName("slice").GetFunc();
-			code.Add(new TAC.Line(TAC.LTemp(resultTempNum), TAC.Line.Op.CallFunctionA, func, TAC.Num(3)));
+			code.Add(new Line(TAC.LTemp(resultTempNum), Line.Op.CallFunctionA, func, TAC.Num(3)));
 		}
 		
 		/// <summary>
