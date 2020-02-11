@@ -493,6 +493,10 @@ namespace Miniscript {
                     return seqStr;
             }
 
+            //Console.WriteLine("Alloc str " + val);
+            //if (val == "at")
+            //{ }
+
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValString>();
             else
@@ -507,7 +511,6 @@ namespace Miniscript {
             }
 
             _numInstancesAllocated++;
-            //Console.WriteLine("Alloc str " + val);
             return new ValString(val, true);
         }
 		protected ValString(string value, bool usePool) : base(usePool) {
@@ -516,12 +519,21 @@ namespace Miniscript {
 		}
         public override void Ref()
         {
+            if (!base._poolable)
+                return;
+            //if(value == "at")
+                //Console.WriteLine("Str " + value + " ref, ref count #" + _refCount);
             base.Ref();
         }
         public override void Unref()
         {
+            if (!base._poolable)
+                return;
+            //if (value == "s")
+            //{ }
             base.Unref();
-            //Console.WriteLine("Str unref, ref count #" + _refCount);
+            //if(value == "at")
+                //Console.WriteLine("Str " + value + " unref, ref count #" + _refCount);
         }
         protected override void ResetState()
         {

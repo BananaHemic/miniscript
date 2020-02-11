@@ -642,7 +642,9 @@ namespace Miniscript {
 			public void Reset(bool clearVariables=true) {
 				lineNum = 0;
                 // #0 is the return variable, which we don't want to unref
-                for(int i = 1; i < temps.Count; i++)
+                // unless this is the root context, in which case we unref it all
+                int start = root == this ? 0 : 1;
+                for(int i = start; i < temps.Count; i++)
                 {
                     if (tempUnref[i])
                     {
@@ -652,6 +654,7 @@ namespace Miniscript {
                     }
                 }
                 temps.Clear();
+                tempUnref.Clear();
                 if (clearVariables)
                 {
                     if(variables != null)
@@ -878,7 +881,7 @@ namespace Miniscript {
                     PoolableValue poolArg = argument as PoolableValue;
                     if (poolArg != null)
                         poolArg.Ref();
-					int paramNum = argCount - 1 - i + selfParam;
+                    int paramNum = argCount - 1 - i + selfParam;
 					if (paramNum >= func.parameters.Count) {
 						throw new TooManyArgumentsException();
 					}
@@ -1062,6 +1065,11 @@ namespace Miniscript {
 					}
 				} else if (line.op == Line.Op.ReturnA) {
 					Value val = line.Evaluate(context);
+                    // We're about to return a variable, so
+                    // we should ref it
+                    PoolableValue poolRet = val as PoolableValue;
+                    if (poolRet != null)
+                        poolRet.Ref();
 					context.StoreValue(line.lhs, val);
 					PopContext();
 				} else if (line.op == Line.Op.AssignImplicit) {

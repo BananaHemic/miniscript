@@ -42,7 +42,7 @@ class MainClass {
         miniscript.standardOutput = (string s) => actualOutput.Add(s);
         miniscript.errorOutput = miniscript.standardOutput;
 		miniscript.implicitOutput = miniscript.standardOutput;
-		miniscript.RunUntilDone(60, false);
+		miniscript.RunUntilDone(6000, false);
 
 //		Console.WriteLine("ACTUAL OUTPUT:");
 //		Console.WriteLine(string.Join("\n", actualOutput));
