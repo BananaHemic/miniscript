@@ -891,9 +891,9 @@ namespace Miniscript {
 			if (val is ValNumber) {
                 // If what follows is a numeric literal, just invert it and be done!
                 ValNumber valnum = (ValNumber)val;
-                //valnum.value = -valnum.value;
-                //return valnum;
-                return ValNumber.Create(-valnum.value);
+                ValNumber ret = ValNumber.Create(-valnum.value);
+                valnum.Unref();
+                return ret;
 			}
 			// Otherwise, subtract it from 0 and return a new temporary.
 			int tempNum = output.nextTempNum++;
