@@ -50,13 +50,13 @@ namespace Miniscript
         }
         public override void Ref()
         {
-            if(_num == 2)
+            if(_id == 2)
             { }
             base.Ref();
         }
         public override void Unref()
         {
-            if(_num == 2)
+            if(_id == 2)
             { }
             base.Unref();
         }

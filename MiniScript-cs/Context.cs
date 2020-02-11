@@ -284,6 +284,10 @@ namespace Miniscript
                 if (index is ValVar || index is ValSeqElem || 
                     index is ValTemp) index = index.Val(this, false);
                 seq.SetElem(index, value);
+
+                // Now seq owns a ref, so we can unref
+                if (unrefWhenDone)
+                    value.Unref();
             } else {
                 if (lhs != null) throw new RuntimeException("not an lvalue");
             }

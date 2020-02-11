@@ -26,8 +26,12 @@ namespace Miniscript
         [ThreadStatic]
         private static StringBuilder _workingStringBuilder;
 
+        private static int _num;
+        private int _id;
+
 		private ValMap(bool usePool) : base(usePool) {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
+            _id = _num++;
 		}
         protected override void ResetState()
         {
@@ -61,6 +65,7 @@ namespace Miniscript
                 if (valMap != null)
                 {
                     valMap._refCount = 1;
+                    valMap._id = _num++;
                     return valMap;
                 }
             }
