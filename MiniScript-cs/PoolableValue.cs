@@ -22,7 +22,7 @@ namespace Miniscript
         }
         protected abstract void ResetState();
         protected abstract void ReturnToPool();
-        public virtual void Ref()
+        public override void Ref()
         {
             if (_poolable)
                 _refCount++;
@@ -31,7 +31,7 @@ namespace Miniscript
         {
             return _refCount;
         }
-        public virtual void Unref()
+        public override void Unref()
         {
             if (!_poolable)
                 return;

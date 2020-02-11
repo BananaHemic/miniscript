@@ -26,6 +26,11 @@ namespace Miniscript
 		public override string ToString() {
 			return ToString(null);
 		}
+
+        // Mainly used for pooling, so that we don't have to cast all the time
+        // Non-Poolables will have this as a no-op
+        public virtual void Ref() { }
+        public virtual void Unref() { }
 		
 		public abstract string ToString(Machine vm);
 		
