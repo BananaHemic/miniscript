@@ -323,13 +323,19 @@ namespace Miniscript {
         protected static uint _numInstancesAllocated = 0;
         public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
 
+        private static int _num = 0;
+        private int _id;
+
 		private ValNumber(double value, bool usePool) : base(usePool) {
 			this.value = value;
+            this._id = _num++;
+            if(_id == 55)
+            { }
 		}
         public static ValNumber Create(double value)
         {
-            Console.WriteLine("Alloc num " + value);
-            if (value == 24)
+            //Console.WriteLine("Alloc num " + value);
+            if (value == 47)
             { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValNumber>();
@@ -340,6 +346,10 @@ namespace Miniscript {
                 {
                     val._refCount = 1;
                     val.value = value;
+                    val._id = _num++;
+
+                    if(val._id == 55)
+                    { }
                     return val;
                 }
             }
@@ -349,7 +359,7 @@ namespace Miniscript {
         }
         public override void Unref()
         {
-            if (value == 24)
+            if (value == 47)
             { }
             if (base._refCount == 1)
             {
@@ -361,7 +371,7 @@ namespace Miniscript {
         }
         public override void Ref()
         {
-            if (value == 24)
+            if (value == 47)
             { }
             base.Ref();
         }
@@ -377,7 +387,7 @@ namespace Miniscript {
         //    return v;
         //}
         protected override void ResetState() {
-            Console.WriteLine("Return num " + value);
+            //Console.WriteLine("Return num " + value);
         }
         protected override void ReturnToPool()
         {
@@ -509,7 +519,7 @@ namespace Miniscript {
                     return lenStr;
             }
 
-            Console.WriteLine("Alloc str " + val);
+            //Console.WriteLine("Alloc str \"" + val + "\"");
             if (val == "zzz")
             { }
 
@@ -690,9 +700,12 @@ namespace Miniscript {
         [ThreadStatic]
         private static StringBuilder _workingStringBuilder;
 
+        private static int _num;
+        private int _id;
+
         public static ValList Create(int capacity=0)
         {
-            //Console.WriteLine("ValList create");
+            //Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValList>();
             else
@@ -702,6 +715,7 @@ namespace Miniscript {
                 {
                     existing._refCount = 1;
                     existing.EnsureCapacity(capacity);
+                    existing._id = _num++;
                     return existing;
                 }
             }
@@ -725,10 +739,11 @@ namespace Miniscript {
                 if (valPool != null)
                     valPool.Unref();
             }
-            //Console.WriteLine("ValList back in pool");
+            //Console.WriteLine("ValList #" + _id + " back in pool");
             values.Clear();
         }
         private ValList(int capacity, bool poolable) : base(poolable) {
+            _id = _num++;
             values = new List<Value>(capacity);
 		}
         public void Add(Value value, bool takeRef=true)
@@ -1483,7 +1498,14 @@ namespace Miniscript {
 		}
 
 		public override Value Val(TAC.Context context, bool takeRef) {
-			return context.GetTemp(tempNum);
+			Value v = context.GetTemp(tempNum);
+            if (takeRef)
+            {
+                PoolableValue pool = v as PoolableValue;
+                if (pool != null)
+                    pool.Ref();
+            }
+            return v;
 		}
 
 		public override Value Val(TAC.Context context, out ValMap valueFoundIn) {

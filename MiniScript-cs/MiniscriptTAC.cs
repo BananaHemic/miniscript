@@ -700,7 +700,7 @@ namespace Miniscript {
             public void SetVar(string identifier, Value value)
             {
                 ValNumber tmp = value as ValNumber;
-                if (tmp != null && tmp.value == 20)
+                if (tmp != null && tmp.value == 47)
                 { }
                 if (identifier == "globals" || identifier == "locals") {
 					throw new RuntimeException("can't assign to " + identifier);
@@ -1095,7 +1095,7 @@ namespace Miniscript {
                         || line.op == Line.Op.CallIntrinsicA // Intrinsics return a value that should be unreffed when done
                         || line.op == Line.Op.CopyA         // If we just copied into a new val, then this should be unreffed when done
                         ;
-					context.StoreValue(line.lhs, val, unrefWhenDone);
+					context.StoreValue(line.lhs, val, true);
 				}
 			}
 
