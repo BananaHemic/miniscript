@@ -713,6 +713,8 @@ namespace Miniscript {
 				tokens.Dequeue();		// discard "and"
 				val = FullyEvaluate(val);
 
+                PoolableValue poolVal = val as PoolableValue;
+
 				AllowLineBreak(tokens); // allow a line break after a binary operator
 
 				// Set up a short-circuit jump based on the current value; 
@@ -724,6 +726,8 @@ namespace Miniscript {
 
 				Value opB = nextLevel(tokens, asLval, statementStart);
 				int tempNum = output.nextTempNum++;
+                if (poolVal != null)
+                    poolVal.Ref();
 				output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.AAndB, val, opB));
 				val = TAC.RTemp(tempNum);
 
