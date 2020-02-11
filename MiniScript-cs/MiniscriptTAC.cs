@@ -689,7 +689,7 @@ namespace Miniscript {
 			public void SetVar(Value identifier, Value value) {
 
                 ValNumber tmp = value as ValNumber;
-                if (tmp != null && tmp.value == 2)
+                if (tmp != null && tmp.value == 20)
                 { }
 
 				if (variables == null) variables = ValMap.Create();
@@ -700,7 +700,7 @@ namespace Miniscript {
             public void SetVar(string identifier, Value value)
             {
                 ValNumber tmp = value as ValNumber;
-                if (tmp != null && tmp.value == 2)
+                if (tmp != null && tmp.value == 20)
                 { }
                 if (identifier == "globals" || identifier == "locals") {
 					throw new RuntimeException("can't assign to " + identifier);
@@ -889,7 +889,11 @@ namespace Miniscript {
 				}
 				// And fill in the rest with default values
 				for (int paramNum = argCount+selfParam; paramNum < func.parameters.Count; paramNum++) {
-					result.SetVar(func.parameters[paramNum].name, func.parameters[paramNum].defaultValue);
+                    Value defVal = func.parameters[paramNum].defaultValue;
+                    PoolableValue poolArg = defVal as PoolableValue;
+                    if (poolArg != null)
+                        poolArg.Ref();
+					result.SetVar(func.parameters[paramNum].name, defVal);
 				}
 
 				return result;
