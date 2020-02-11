@@ -572,7 +572,8 @@ namespace Miniscript {
 			public Machine vm;				// virtual machine
 			public Intrinsic.Result partialResult;	// work-in-progress of our current intrinsic
 			public int implicitResultCounter;	// how many times we have stored an implicit result
-			List<Value> temps;			// values of temporaries; temps[0] is always return value
+			readonly List<Value> temps = new List<Value>();			// values of temporaries; temps[0] is always return value
+			readonly List<bool> tempUnref = new List<bool>();			// values of temporaries; temps[0] is always return value
 
             [ThreadStatic]
             private static Stack<Context> _pool;
@@ -640,8 +641,17 @@ namespace Miniscript {
 			/// <param name="clearVariables">if true, clear our local variables</param>
 			public void Reset(bool clearVariables=true) {
 				lineNum = 0;
-                if(temps != null)
-                    temps.Clear();
+                // #0 is the return variable, which we don't want to unref
+                for(int i = 1; i < temps.Count; i++)
+                {
+                    if (tempUnref[i])
+                    {
+                        PoolableValue poolTempVal = temps[i] as PoolableValue;
+                        if (poolTempVal != null)
+                            poolTempVal.Unref();
+                    }
+                }
+                temps.Clear();
                 if (clearVariables)
                 {
                     if(variables != null)
@@ -654,10 +664,14 @@ namespace Miniscript {
 				lineNum = code.Count;
 			}
 
-			public void SetTemp(int tempNum, Value value) {
-				if (temps == null) temps = new List<Value>();
-				while (temps.Count <= tempNum) temps.Add(null);
+			public void SetTemp(int tempNum, Value value, bool unrefWhenDone) {
+                while (temps.Count <= tempNum)
+                {
+                    temps.Add(null);
+                    tempUnref.Add(false);
+                }
 				temps[tempNum] = value;
+                tempUnref[tempNum] = unrefWhenDone;
 			}
 
 			public Value GetTemp(int tempNum) {
@@ -798,9 +812,9 @@ namespace Miniscript {
 				throw new UndefinedIdentifierException(identifier);
 			}
 
-			public void StoreValue(Value lhs, Value value) {
+			public void StoreValue(Value lhs, Value value, bool unrefWhenDone=false) {
 				if (lhs is ValTemp) {
-					SetTemp(((ValTemp)lhs).tempNum, value);
+					SetTemp(((ValTemp)lhs).tempNum, value, unrefWhenDone);
 				} else if (lhs is ValVar) {
                     //SetVar(lhs, value);
                     SetVar(((ValVar)lhs).identifier, value);
@@ -1058,7 +1072,10 @@ namespace Miniscript {
 					}
 				} else {
 					Value val = line.Evaluate(context);
-					context.StoreValue(line.lhs, val);
+                    bool unrefWhenDone = false
+                        || line.op == Line.Op.CallIntrinsicA // Intrinsics return a value that should be unreffed when done
+                        ;
+					context.StoreValue(line.lhs, val, unrefWhenDone);
 				}
 			}
 
@@ -1069,7 +1086,7 @@ namespace Miniscript {
 				Value result = oldContext.GetTemp(0, null);
 				Value storage = oldContext.resultStorage;
 				Context context = stack.Peek();
-				context.StoreValue(storage, result);
+				context.StoreValue(storage, result, true);
                 oldContext.Dispose();
 			}
 

@@ -156,6 +156,8 @@ class MainClass {
 		//UnitTest.Run();
 
 		Print("Running test suite.\n");
+        Intrinsics.InitIfNeeded();
+        Intrinsic.GetByName("slice").GetFunc();
         System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
         //RunTestSuite("../../../TestSuite.txt");
