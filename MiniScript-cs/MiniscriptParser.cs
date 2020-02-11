@@ -682,6 +682,10 @@ namespace Miniscript {
 				if (jumpLines == null) jumpLines = new List<TAC.Line>();
 				jumpLines.Add(jump);
 
+                PoolableValue poolVal = val as PoolableValue;
+                if (poolVal != null)
+                    poolVal.Ref();
+
 				Value opB = nextLevel(tokens);
 				int tempNum = output.nextTempNum++;
 				output.Add(new TAC.Line(TAC.LTemp(tempNum), TAC.Line.Op.AOrB, val, opB));
