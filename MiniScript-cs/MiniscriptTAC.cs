@@ -1049,7 +1049,14 @@ namespace Miniscript {
 						Context nextContext = context.NextCallContext(func.function, argCount, self != null, line.lhs);
 						nextContext.outerVars = func.outerVars;
 						if (valueFoundIn != null) nextContext.SetVar("super", super);
-						if (self != null) nextContext.SetVar("self", self);	// (set only if bound above)
+                        if (self != null)
+                        {
+                            // Take a ref to self
+                            PoolableValue poolSelf = self as PoolableValue;
+                            if (poolSelf != null)
+                                poolSelf.Ref();
+                            nextContext.SetVar("self", self);   // (set only if bound above)
+                        }
 						stack.Push(nextContext);
 					} else {
                         // The line.rhsA.Val doesn't call PoolableValue Val() when rhs is a ValVar, so we

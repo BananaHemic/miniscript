@@ -62,7 +62,7 @@ namespace Miniscript {
 		private ValFunction valFunction;	// (cached wrapper for function)
 		int numericID;		// also its index in the 'all' list
 
-		readonly static List<Intrinsic> all = new List<Intrinsic>() { null };
+		public readonly static List<Intrinsic> all = new List<Intrinsic>() { null };
 		readonly static Dictionary<string, Intrinsic> nameMap = new Dictionary<string, Intrinsic>();
 		
 		/// <summary>

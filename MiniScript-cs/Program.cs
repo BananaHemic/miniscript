@@ -157,9 +157,18 @@ class MainClass {
 
 		Print("Running test suite.\n");
         Intrinsics.InitIfNeeded();
-        Intrinsic.GetByName("slice").GetFunc();
+        Intrinsics.MapType();
+        Intrinsics.StringType();
+        Intrinsics.NumberType();
+        Intrinsics.FunctionType();
+        Intrinsics.ListType();
+        for(int i = 1; i < Intrinsic.all.Count; i++)
+            Intrinsic.all[i].GetFunc();
+        //Intrinsic.GetByName("slice").GetFunc();
+        //Intrinsic.GetByName("print").GetFunc();
         System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
+        Console.WriteLine("--------------");
         //RunTestSuite("../../../TestSuite.txt");
         RunTestSuite("../../../TestSuite_min.txt");
         //RunTestSuite("../../../TestSuite_split.txt");
