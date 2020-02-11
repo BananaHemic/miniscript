@@ -134,8 +134,9 @@ namespace Miniscript {
 		public void AddParam(string name, string defaultValue) {
 			Value defVal;
 			if (string.IsNullOrEmpty(defaultValue)) defVal = ValString.empty;
-			else if (defaultValue == "__isa") defVal = ValString.magicIsA;
-			else if (defaultValue == "self") defVal = _self;
+			//else if (defaultValue == "__isa") defVal = ValString.magicIsA;
+			//else if (defaultValue == "self") defVal = _self;
+			//else if (defaultValue == " ") defVal = ValString.spaceStr;
 			else defVal = ValString.Create(defaultValue);
 			function.parameters.Add(new Function.Param(name, defVal));
 		}

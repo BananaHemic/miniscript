@@ -479,6 +479,20 @@ namespace Miniscript {
             if(!usePool)
                 return new ValString(val, false);
 
+            switch (val)
+            {
+                case " ":
+                    return spaceStr;
+                case "to":
+                    return toStr;
+                case "from":
+                    return fromStr;
+                case "__isa":
+                    return magicIsA;
+                case "seq":
+                    return seqStr;
+            }
+
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValString>();
             else
@@ -493,6 +507,7 @@ namespace Miniscript {
             }
 
             _numInstancesAllocated++;
+            //Console.WriteLine("Alloc str " + val);
             return new ValString(val, true);
         }
 		protected ValString(string value, bool usePool) : base(usePool) {
@@ -510,8 +525,8 @@ namespace Miniscript {
         }
         protected override void ResetState()
         {
+            //Console.WriteLine("Str \"" + value + "\" back in pool");
             value = null;
-            //Console.WriteLine("Str back in pool");
         }
         protected override void ReturnToPool()
         {
@@ -576,6 +591,10 @@ namespace Miniscript {
 		public static ValString magicIsA = new ValString("__isa", false);
 
 		public static ValString selfStr = new ValString("self", false);
+		public static ValString spaceStr = new ValString(" ", false);
+		public static ValString fromStr = new ValString("from", false);
+		public static ValString toStr = new ValString("to", false);
+		public static ValString seqStr = new ValString("seq", false);
 		
 		static ValString _empty = new ValString("", false);
 		
