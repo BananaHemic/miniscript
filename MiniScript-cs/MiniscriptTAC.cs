@@ -1078,10 +1078,10 @@ namespace Miniscript {
 					Value val = line.Evaluate(context);
                     // We're about to return a variable, so
                     // we should ref it
-                    PoolableValue poolRet = val as PoolableValue;
-                    if (poolRet != null)
-                        poolRet.Ref();
-					context.StoreValue(line.lhs, val);
+                    //PoolableValue poolRet = val as PoolableValue;
+                    //if (poolRet != null)
+                        //poolRet.Ref();
+					context.StoreValue(line.lhs, val, false);
 					PopContext();
 				} else if (line.op == Line.Op.AssignImplicit) {
 					Value val = line.Evaluate(context);
