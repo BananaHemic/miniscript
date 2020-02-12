@@ -419,7 +419,8 @@ namespace Miniscript
                     Check.Range(idx, -list.Count, list.Count - 1, "list index");
                     if (idx < 0) idx += list.Count;
                     Value val = list[idx];
-                    val.Ref();
+                    if(val != null)
+                        val.Ref();
                     return val;
                 } else if (op == Op.LengthOfA) {
                     return ValNumber.Create(list.Count);

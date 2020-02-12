@@ -144,6 +144,7 @@ namespace Miniscript {
 				Value target = TAC.Num(code.Count);
 
 				int idx = backpatches.Count - 1;
+                bool hasAdded = false;
 				while (idx >= 0) {
 					BackPatch 
 					bp = backpatches[idx];
@@ -152,6 +153,9 @@ namespace Miniscript {
 						backpatches.RemoveAt(idx);
 						return;
 					} else if (bp.waitingFor == "end if" || bp.waitingFor == "else") {
+                        if (hasAdded && target != null)
+                            target.Ref();
+                        hasAdded = true;
 						code[bp.lineNum].rhsA = target;
 						backpatches.RemoveAt(idx);
 					}

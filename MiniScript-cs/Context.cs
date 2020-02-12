@@ -289,7 +289,7 @@ namespace Miniscript
                 seq.SetElem(index, value);
 
                 // Now seq owns a ref, so we can unref
-                if (unrefWhenDone)
+                if (unrefWhenDone && value != null)
                     value.Unref();
             } else {
                 if (lhs != null) throw new RuntimeException("not an lvalue");

@@ -28,8 +28,8 @@ namespace Miniscript
 		}
         public static ValNumber Create(double value)
         {
-            Console.WriteLine("Alloc num " + value + " ID " + (_num));
-            if ((_num) == 82)
+            //Console.WriteLine("Alloc num " + value + " ID " + (_num));
+            if ((_num) == 65)
             { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValNumber>();
@@ -50,11 +50,11 @@ namespace Miniscript
         }
         public override void Unref()
         {
-            if (_id == 82)
+            if (_id == 65)
             { }
             if (base._refCount == 1)
             {
-                Console.WriteLine("Recyclying val " + value + " ID " + _id);
+                //Console.WriteLine("Recyclying val " + value + " ID " + _id);
             }
             if (base._refCount == 0)
                 Console.WriteLine("Extra unref Val: " + value + " ID " + _id);
@@ -62,7 +62,7 @@ namespace Miniscript
         }
         public override void Ref()
         {
-            if (_id == 82)
+            if (_id == 65)
             { }
             base.Ref();
         }
