@@ -24,12 +24,16 @@ namespace Miniscript
         private static StringBuilder _workingStringBuilder;
 
         private static int _num;
-        private int _id;
+        public int _id;
 
+        private ValList(int capacity, bool poolable) : base(poolable) {
+            _id = _num++;
+            values = new List<Value>(capacity);
+		}
         public static ValList Create(int capacity=0)
         {
-            //Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
-            if(_num == 2)
+            Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
+            if (_num == 0)
             { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValList>();
@@ -50,14 +54,16 @@ namespace Miniscript
         }
         public override void Ref()
         {
-            if(_id == 2)
+            if(_id == 0)
             { }
             base.Ref();
         }
         public override void Unref()
         {
-            if(_id == 2)
+            if(_id == 0)
             { }
+            if(base._refCount == 0)
+                Console.WriteLine("ValList #" + _id + " double unref");
             base.Unref();
         }
         protected override void ResetState()
@@ -68,13 +74,9 @@ namespace Miniscript
                 if (valPool != null)
                     valPool.Unref();
             }
-            //Console.WriteLine("ValList #" + _id + " back in pool");
+            Console.WriteLine("ValList #" + _id + " back in pool");
             values.Clear();
         }
-        private ValList(int capacity, bool poolable) : base(poolable) {
-            _id = _num++;
-            values = new List<Value>(capacity);
-		}
         public void Add(Value value, bool takeRef=true)
         {
             if (takeRef)
@@ -91,9 +93,9 @@ namespace Miniscript
             for(int i = 0; i < recvValues.Count;i++)
             {
                 Value value = recvValues[i];
-                //PoolableValue valPool = value as PoolableValue;
-                //if (valPool != null)
-                //    valPool.Ref();
+                PoolableValue valPool = value as PoolableValue;
+                if (valPool != null)
+                    valPool.Ref();
                 values.Add(value);
             }
         }

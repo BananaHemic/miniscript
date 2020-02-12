@@ -29,7 +29,7 @@ namespace Miniscript
         public static ValNumber Create(double value)
         {
             //Console.WriteLine("Alloc num " + value + " ID " + (_num));
-            if ((_num) == 65)
+            if ((_num) == 68)
             { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValNumber>();
@@ -50,7 +50,7 @@ namespace Miniscript
         }
         public override void Unref()
         {
-            if (_id == 65)
+            if (_id == 68)
             { }
             if (base._refCount == 1)
             {
@@ -62,7 +62,7 @@ namespace Miniscript
         }
         public override void Ref()
         {
-            if (_id == 65)
+            if (_id == 68)
             { }
             base.Ref();
         }

@@ -929,6 +929,7 @@ namespace Miniscript {
 						list[idx++] = kv.value;
 					}
 				}
+                list.Ref();// It's assumed that intrinsics either ref or return a new Value
 				return new Intrinsic.Result(list);
 			};
 

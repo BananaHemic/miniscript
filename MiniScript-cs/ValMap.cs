@@ -381,6 +381,9 @@ namespace Miniscript
             SetElem(index, value, true);
 		}
 		public void SetElem(Value index, Value value, bool takeValueRef, bool takeIndexRef=true) {
+            ValNumber newNum = value as ValNumber;
+            if (newNum != null && newNum._id == 68)
+            { }
             //Console.WriteLine("Map set elem " + index.ToString() + ": " + value.ToString());
             if (takeValueRef)
             {

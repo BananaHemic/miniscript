@@ -196,6 +196,9 @@ namespace Miniscript
         /// into the lhs.
         /// </summary>
         public Value Evaluate(Context context) {
+            ValNumber va = rhsA as ValNumber;
+            if (op == Op.CallIntrinsicA && va != null && va.value == 36)
+            { }
             if (op == Op.AssignA || op == Op.ReturnA || op == Op.AssignImplicit) {
                 // Assignment is a bit of a special case.  It's EXTREMELY common
                 // in TAC, so needs to be efficient, but we have to watch out for
@@ -464,7 +467,10 @@ namespace Miniscript
                     // (note, cases where opB is a string are handled above, along with
                     // all the other types; so we'll only get here for non-string cases)
                     ValSeqElem se = ValSeqElem.Create(opA, opB);
-                    return se.Val(context, true);
+                    Value ret = se.Val(context, true);
+                    //if (se != null)
+                        //se.Unref();
+                    return ret;
                     // (This ensures we walk the "__isa" chain in the standard way.)
                 } else if (op == Op.ElemBofIterA) {
                     // With a map, ElemBofIterA is different from ElemBofA.  This one

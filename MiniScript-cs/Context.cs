@@ -120,6 +120,10 @@ namespace Miniscript
         }
 
         public void SetTemp(int tempNum, Value value, bool unrefWhenDone) {
+
+            ValNumber v = value as ValNumber;
+            if (v != null && v._id == 68)
+            { }
             while (temps.Count <= tempNum)
             {
                 temps.Add(null);
@@ -149,13 +153,14 @@ namespace Miniscript
 
             if (variables == null) variables = ValMap.Create();
             if (variables.assignOverride == null || !variables.assignOverride(identifier, value)) {
-                variables[identifier] = value;
+                //variables[identifier] = value;
+                variables.SetElem(identifier, value, false);
             }
         }
         public void SetVar(string identifier, Value value)
         {
             ValNumber tmp = value as ValNumber;
-            if (tmp != null && tmp._id == 75)
+            if (tmp != null && tmp._id == 68)
             { }
             if (identifier == "globals" || identifier == "locals") {
                 throw new RuntimeException("can't assign to " + identifier);
@@ -165,6 +170,7 @@ namespace Miniscript
             if (variables.assignOverride == null || !variables.assignOverride(identifierStr, value)) {
                 //variables[identifier] = value;
                 variables.SetElem(identifier, value, false);
+                //variables.SetElem(identifier, value, true);
             }
             TempValString.Release(identifierStr);
         }

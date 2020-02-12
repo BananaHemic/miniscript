@@ -116,7 +116,10 @@ namespace Miniscript
 
 		public override Value Val(Context context, bool takeRef) {
 			ValMap ignored;
-			return Val(context, out ignored);
+			Value v = Val(context, out ignored);
+            if (v != null)
+                v.Ref();
+            return v;
 		}
 		
 		public override Value Val(Context context, out ValMap valueFoundIn) {
