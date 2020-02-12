@@ -375,7 +375,11 @@ namespace Miniscript
                     string sB = (opB == null ? null : opB.ToString(context.vm));
                     switch (op) {
                         case Op.AMinusB: {
-                                if (opB == null) return opA;
+                                if (opB == null)
+                                {
+                                    opA.Ref();
+                                    return opA;
+                                }
                                 if (sA.EndsWith(sB)) sA = sA.Substring(0, sA.Length - sB.Length);
                                 return ValString.Create(sA);
                             }
@@ -414,7 +418,9 @@ namespace Miniscript
                     int idx = opB.IntValue();
                     Check.Range(idx, -list.Count, list.Count - 1, "list index");
                     if (idx < 0) idx += list.Count;
-                    return list[idx];
+                    Value val = list[idx];
+                    val.Ref();
+                    return val;
                 } else if (op == Op.LengthOfA) {
                     return ValNumber.Create(list.Count);
                 } else if (op == Op.AEqualB) {
@@ -476,7 +482,6 @@ namespace Miniscript
                     //Dictionary<Value, Value> map2 = ((ValMap)opB).map;
                     ValMap result = ValMap.Create();
                     ValMap mapA = opA as ValMap;
-                    //TODO I think this is double reffing
                     foreach (KeyValuePair<Value, Value> kv in mapA)
                         result[kv.Key] = context.ValueInContext(kv.Value);
                     ValMap mapB = opB as ValMap;

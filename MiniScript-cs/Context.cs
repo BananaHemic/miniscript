@@ -125,6 +125,9 @@ namespace Miniscript
                 temps.Add(null);
                 tempUnref.Add(false);
             }
+            Value existing = temps[tempNum];
+            if (existing != null && tempUnref[tempNum])
+                existing.Unref();
             temps[tempNum] = value;
             tempUnref[tempNum] = unrefWhenDone;
         }
@@ -152,7 +155,7 @@ namespace Miniscript
         public void SetVar(string identifier, Value value)
         {
             ValNumber tmp = value as ValNumber;
-            if (tmp != null && tmp.value == 47)
+            if (tmp != null && tmp._id == 75)
             { }
             if (identifier == "globals" || identifier == "locals") {
                 throw new RuntimeException("can't assign to " + identifier);

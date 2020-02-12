@@ -20,18 +20,16 @@ namespace Miniscript
         public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
 
         private static int _num = 0;
-        private int _id;
+        public int _id;
 
 		private ValNumber(double value, bool usePool) : base(usePool) {
 			this.value = value;
             this._id = _num++;
-            if(_id == 57)
-            { }
 		}
         public static ValNumber Create(double value)
         {
-            //Console.WriteLine("Alloc num " + value + " ID " + (_num));
-            if ((_num) == 58)
+            Console.WriteLine("Alloc num " + value + " ID " + (_num));
+            if ((_num) == 82)
             { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValNumber>();
@@ -43,9 +41,6 @@ namespace Miniscript
                     val._refCount = 1;
                     val.value = value;
                     val._id = _num++;
-
-                    if(val._id == 57)
-                    { }
                     return val;
                 }
             }
@@ -55,11 +50,11 @@ namespace Miniscript
         }
         public override void Unref()
         {
-            if (_id == 58)
+            if (_id == 82)
             { }
             if (base._refCount == 1)
             {
-                //Console.WriteLine("Recyclying val " + value);
+                Console.WriteLine("Recyclying val " + value + " ID " + _id);
             }
             if (base._refCount == 0)
                 Console.WriteLine("Extra unref Val: " + value + " ID " + _id);
@@ -67,7 +62,7 @@ namespace Miniscript
         }
         public override void Ref()
         {
-            if (_id == 58)
+            if (_id == 82)
             { }
             base.Ref();
         }

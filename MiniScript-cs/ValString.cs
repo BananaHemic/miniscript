@@ -48,7 +48,7 @@ namespace Miniscript
                     return lenStr;
             }
 
-            Console.WriteLine("Alloc str \"" + val + "\"");
+            //Console.WriteLine("Alloc str \"" + val + "\"");
             if (val == "r")
             { }
 
@@ -97,7 +97,7 @@ namespace Miniscript
         }
         protected override void ResetState()
         {
-            Console.WriteLine("Str \"" + value + "\" back in pool");
+            //Console.WriteLine("Str \"" + value + "\" back in pool");
             //value = null;
         }
         protected override void ReturnToPool()

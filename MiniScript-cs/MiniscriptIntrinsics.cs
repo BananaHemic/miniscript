@@ -696,7 +696,7 @@ namespace Miniscript {
 				try {
                     values = ValList.Create(count);
 					for (double v = fromVal; step > 0 ? (v <= toVal) : (v >= toVal); v += step) {
-						values.Add(TAC.Num(v));
+						values.Add(TAC.Num(v), false);
 					}
 				} catch (SystemException e) {
 					// uh-oh... probably out-of-memory exception; clean up and bail out
