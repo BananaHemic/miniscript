@@ -17,7 +17,14 @@ namespace Miniscript
 			this.function = function;
 		}
 
-		public override string ToString(Machine vm) {
+        public override void Unref()
+        {
+            if (function != null)
+                function.Dispose();
+            function = null;
+        }
+
+        public override string ToString(Machine vm) {
 			return function.ToString(vm);
 		}
 

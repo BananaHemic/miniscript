@@ -39,6 +39,24 @@ namespace Miniscript
 			parameters = new List<Param>();
 		}
 
+        public void Dispose()
+        {
+            foreach(var p in parameters)
+            {
+                if (p.defaultValue != null)
+                    p.defaultValue.Unref();
+            }
+            parameters.Clear();
+            foreach(var l in code)
+            {
+                if (l.rhsA != null)
+                    l.rhsA.Unref();
+                if (l.rhsB != null)
+                    l.rhsB.Unref();
+            }
+            code.Clear();
+        }
+
 		public string ToString(Machine vm) {
             if (_workingStringBuilder == null)
                 _workingStringBuilder = new StringBuilder();

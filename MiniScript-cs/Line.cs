@@ -62,16 +62,12 @@ namespace Miniscript
 
         public void Dispose()
         {
-            //TODO not sure if this is doing anything
-            PoolableValue poolLhs = lhs as PoolableValue;
-            PoolableValue poolRhsA = rhsA as PoolableValue;
-            PoolableValue poolRhsB = rhsB as PoolableValue;
-            if (poolLhs != null)
-                poolLhs.Unref();
-            if (poolRhsA != null)
-                poolRhsA.Unref();
-            if (poolRhsB != null)
-                poolRhsB.Unref();
+            if (lhs != null)
+                lhs.Unref();
+            if (rhsA != null)
+                rhsA.Unref();
+            if (rhsB != null)
+                rhsB.Unref();
             lhs = null;
             rhsA = null;
             rhsB = null;
