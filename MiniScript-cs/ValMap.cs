@@ -13,6 +13,7 @@ namespace Miniscript
 	/// </summary>
 	public class ValMap : PoolableValue, IEnumerable {
 		private readonly Dictionary<Value, Value> map;
+        private readonly List<Value> _keys = new List<Value>();
 
 		// Assignment override function: return true to cancel (override)
 		// the assignment, or false to allow it to happen as normal.
@@ -98,6 +99,8 @@ namespace Miniscript
         }
         protected override void ResetState()
         {
+            if (_id == 13)
+            { }
             foreach(var kvp in map)
             {
                 PoolableValue poolableKey = kvp.Key as PoolableValue;
@@ -107,6 +110,7 @@ namespace Miniscript
                 if (poolableVal != null)
                     poolableVal.Unref();
             }
+            _keys.Clear();
             map.Clear();
         }
         protected override void ReturnToPool()
@@ -136,14 +140,13 @@ namespace Miniscript
             ValNumber newNum = value as ValNumber;
             if (newNum != null && newNum._id == 70)
             { }
+            if (_id == 13)
+            { }
             //Console.WriteLine("Map set elem " + index.ToString() + ": " + value.ToString());
             if (takeValueRef)
-            {
-                // If the value is poolable, ref it
-                PoolableValue valPool = value as PoolableValue;
-                if(valPool != null)
-                    valPool.Ref();
-            }
+                value.Ref();
+            if (takeIndexRef)
+                index.Ref();
 			if (index == null) index = ValNull.instance;
 			if (assignOverride == null || !assignOverride(index, value)) {
 
@@ -152,40 +155,63 @@ namespace Miniscript
                 // instance. Not sure if that normally happens though
                 if(map.TryGetValue(index, out Value existing))
                 {
-                    // Unref what's currently there
-                    PoolableValue existingPoolVal = existing as PoolableValue;
-                    if(existingPoolVal != null)
-                        existingPoolVal.Unref();
-                    map[index] = value;
+                    // Unref the value that's currently there
+                    existing.Unref();
+                    // Try to get the key that's there and unref it
+                    Value existingKey = RemoveBySwap(_keys, index);
+                    if (existingKey != null)
+                        existingKey.Unref();
                 }
-                else
-                {
-                    if (takeIndexRef)
-                    {
-                        // If the index/value is poolable, ref it
-                        PoolableValue indexPool = index as PoolableValue;
-                        if(indexPool != null)
-                            indexPool.Ref();
-                    }
-                    map[index] = value;
-                }
+                _keys.Add(index);
+                map[index] = value;
 			}
 		}
+        public bool Remove(Value keyVal)
+        {
+            if (_id == 13)
+            { }
+            // Pull the current key/value so that we can unref it
+            if(map.TryGetValue(keyVal, out Value existing))
+            {
+                existing.Unref();
+                // Try to get the key that's there and unref it
+                Value existingKey = RemoveBySwap(_keys, keyVal);
+                if (existingKey != null)
+                    existingKey.Unref();
+                map.Remove(keyVal);
+                return true;
+            }
+            return false;
+        }
 		public void SetElem(string index, Value value, bool takeValueRef) {
             //TODO unref current string key if present
             ValString keyStr = ValString.Create(index);
             SetElem(keyStr, value, takeValueRef);
             keyStr.Unref();
 		}
-
-		/// <summary>
-		/// Accessor to get/set on element of this map by a string key, walking
-		/// the __isa chain as needed.  (Note that if you want to avoid that, then
-		/// simply look up your value in .map directly.)
-		/// </summary>
-		/// <param name="identifier">string key to get/set</param>
-		/// <returns>value associated with that key</returns>
-		public Value this [string identifier] {
+        // O(n)
+        private Value RemoveBySwap(List<Value> list, Value item)
+        {
+            for(int i = 0; i < _keys.Count; i++)
+            {
+                Value val = _keys[i];
+                if (val.Equality(item) == 1.0)
+                {
+                    _keys[i] = _keys[_keys.Count - 1];
+                    _keys.RemoveAt(_keys.Count - 1);
+                    return val;
+                }
+            }
+            return null;
+        }
+        /// <summary>
+        /// Accessor to get/set on element of this map by a string key, walking
+        /// the __isa chain as needed.  (Note that if you want to avoid that, then
+        /// simply look up your value in .map directly.)
+        /// </summary>
+        /// <param name="identifier">string key to get/set</param>
+        /// <returns>value associated with that key</returns>
+        public Value this [string identifier] {
 			get { 
 				var idVal = TempValString.Get(identifier);
 				Value result = Lookup(idVal);
@@ -193,23 +219,7 @@ namespace Miniscript
 				return result;
 			}
 			set {
-                ValNumber newNum = value as ValNumber;
-                if (newNum != null && newNum._id == 70)
-                { }
-                //ValString valStr = ValString.Create(identifier);
-                PoolableValue poolableValue = value as PoolableValue;
-                if (poolableValue != null)
-                    poolableValue.Ref();
-
-                ValString idVal = ValString.Create(identifier);
-                if(map.TryGetValue(idVal, out Value existing))
-                {
-                    // Unref the existing
-                    PoolableValue valPool = existing as PoolableValue;
-                    if (valPool != null)
-                        valPool.Unref();
-                }
-                map[idVal] = value;
+                SetElem(identifier, value, true);
             }
 		}
 
@@ -218,28 +228,7 @@ namespace Miniscript
                 return map[identifier];
 			}
 			set {
-                ValNumber newNum = value as ValNumber;
-                if (newNum != null && newNum._id == 70)
-                { }
-                PoolableValue poolableValue = value as PoolableValue;
-                if (poolableValue != null)
-                    poolableValue.Ref();
-
-                if(map.TryGetValue(identifier, out Value existing))
-                {
-                    // Unref the existing
-                    PoolableValue valPool = existing as PoolableValue;
-                    if (valPool != null)
-                        valPool.Unref();
-                }
-                else
-                {
-                    // Ref the key
-                    PoolableValue keyPool = identifier as PoolableValue;
-                    if (keyPool != null)
-                        keyPool.Ref();
-                }
-                map[identifier] = value;
+                SetElem(identifier, value, true);
             }
 		}
 		
@@ -506,22 +495,6 @@ namespace Miniscript
         public Dictionary<Value, Value>.Enumerator GetEnumerator()
         {
             return map.GetEnumerator();
-        }
-        public bool Remove(Value keyVal)
-        {
-            // Pull the current key/value so that we can unref it
-            if(map.TryGetValue(keyVal, out Value existing))
-            {
-                PoolableValue keyPool = keyVal as PoolableValue;
-                PoolableValue valPool = existing as PoolableValue;
-                if (keyPool != null)
-                    keyPool.Unref();
-                if (valPool != null)
-                    valPool.Unref();
-                map.Remove(keyVal);
-                return true;
-            }
-            return false;
         }
 
         static ValString keyStr = ValString.Create("key", false);
