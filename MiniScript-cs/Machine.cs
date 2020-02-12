@@ -165,6 +165,13 @@ namespace Miniscript
                     context.StoreValue(ValVar.implicitResult, val);
                     context.implicitResultCounter++;
                 }
+                else
+                {
+                    // Normally the ctx unrefs when it's done, so if
+                    // not then we need to unref here
+                    if(val != null)
+                        val.Unref();
+                }
             } else {
                 Value val = line.Evaluate(context);
                 bool unrefWhenDone = false
