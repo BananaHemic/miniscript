@@ -17,7 +17,7 @@ namespace Miniscript
 			this.function = function;
 		}
 
-        public override void Unref()
+        public void Dispose()
         {
             if (function != null)
                 function.Dispose();
