@@ -1138,8 +1138,13 @@ namespace Miniscript {
 					double interval = context.GetVar("seconds").DoubleValue();
 					return new Intrinsic.Result(ValNumber.Create(now + interval), false);
 				} else {
-					// Continue until current time exceeds the time in the partial result
-					if (now > partialResult.result.DoubleValue()) return Intrinsic.Result.Null;
+                    // Continue until current time exceeds the time in the partial result
+                    if (now > partialResult.result.DoubleValue())
+                    {
+                        // We're now done with our time
+                        partialResult.result.Unref();
+                        return Intrinsic.Result.Null;
+                    }
 					return partialResult;
 				}
 			};
