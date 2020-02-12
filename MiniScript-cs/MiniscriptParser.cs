@@ -111,6 +111,7 @@ namespace Miniscript {
 			public void Patch(string keywordFound, bool alsoBreak, int reservingLines=0) {
 				Value target = TAC.Num(code.Count + reservingLines);
 				bool done = false;
+                bool hasAssigned = false;
 				for (int idx = backpatches.Count - 1; idx >= 0 && !done; idx--) {
 					bool patchIt = false;
 					if (backpatches[idx].waitingFor == keywordFound) patchIt = done = true;
@@ -123,6 +124,10 @@ namespace Miniscript {
 						throw new CompilerException("'" + keywordFound + "' skips expected '" + backpatches[idx].waitingFor + "'");
 					}
 					if (patchIt) {
+                        // If the value is going into multiple lines, ref it multiple times
+                        if (hasAssigned)
+                            target.Ref();
+                        hasAssigned = true;
 						code[backpatches[idx].lineNum].rhsA = target;
 						backpatches.RemoveAt(idx);
 					}
