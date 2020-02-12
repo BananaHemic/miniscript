@@ -465,7 +465,11 @@ namespace Miniscript {
 						if (!sawAfter) {
 							if (k.Equality(after) == 1) sawAfter = true;
 						} else {
-							if (map[k].Equality(value) == 1) return new Intrinsic.Result(k);
+                            if (map[k].Equality(value) == 1)
+                            {
+                                k.Ref();
+                                return new Intrinsic.Result(k);
+                            }
 						}
 					}
 				}
