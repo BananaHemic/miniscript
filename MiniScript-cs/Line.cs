@@ -62,6 +62,13 @@ namespace Miniscript
 
         public void Dispose()
         {
+            ValFunction rhsAFunc = rhsA as ValFunction;
+            if (rhsAFunc != null)
+                rhsAFunc.Dispose();
+            ValFunction rhsBFunc = rhsB as ValFunction;
+            if (rhsBFunc != null)
+                rhsBFunc.Dispose();
+
             if (lhs != null)
                 lhs.Unref();
             if (rhsA != null)
