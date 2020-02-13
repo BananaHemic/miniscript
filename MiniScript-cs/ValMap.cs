@@ -37,8 +37,7 @@ namespace Miniscript
         public static ValMap Create()
         {
             //Console.WriteLine("Creating ValMap ID " + _num);
-
-            if (_num == 18)
+            if (_num == 8)
             { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValMap>();
@@ -57,14 +56,14 @@ namespace Miniscript
         }
         public override void Ref()
         {
-            if (_id == 18)
+            if (_id == 8)
             { }
             base.Ref();
             //Console.WriteLine("ValMap Ref ref count " + base._refCount);
         }
         public override void Unref()
         {
-            if (_id == 18)
+            if (_id == 8)
             { }
             base.Unref();
 
@@ -185,7 +184,6 @@ namespace Miniscript
             return false;
         }
 		public void SetElem(string index, Value value, bool takeValueRef) {
-            //TODO unref current string key if present
             ValString keyStr = ValString.Create(index);
             SetElem(keyStr, value, takeValueRef);
             keyStr.Unref();
@@ -381,9 +379,9 @@ namespace Miniscript
 			foreach (Value k in map.Keys) {
 				Value key = k;		// stupid C#!
 				Value value = map[key];
-				if (key is ValTemp || key is ValVar) key = key.Val(context, true);
-				if (value is ValTemp || value is ValVar) value = value.Val(context, true);
-				result[key] = value;
+				if (key is ValTemp || key is ValVar) key = key.Val(context, false);
+				if (value is ValTemp || value is ValVar) value = value.Val(context, false);
+                result.SetElem(key, value, true, true);
 			}
 			return result;
 		}
