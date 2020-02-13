@@ -136,9 +136,7 @@ namespace Miniscript
                     if (self != null)
                     {
                         // Take a ref to self
-                        PoolableValue poolSelf = self as PoolableValue;
-                        if (poolSelf != null)
-                            poolSelf.Ref();
+                        self?.Ref();
                         nextContext.SetVar("self", self);   // (set only if bound above)
                     }
                     stack.Push(nextContext);
@@ -147,20 +145,11 @@ namespace Miniscript
                     // need to make sure to ref the value here, if the result of this operation is
                     // going into a ValVar
                     if(line.lhs is ValVar && line.rhsA is ValVar)
-                    {
-                        PoolableValue poolableValue = funcVal as PoolableValue;
-                        if (poolableValue != null)
-                            poolableValue.Ref();
-                    }
+                        funcVal?.Ref();
                     context.StoreValue(line.lhs, funcVal);
                 }
             } else if (line.op == Line.Op.ReturnA) {
                 Value val = line.Evaluate(context);
-                // We're about to return a variable, so
-                // we should ref it
-                //PoolableValue poolRet = val as PoolableValue;
-                //if (poolRet != null)
-                    //poolRet.Ref();
                 context.StoreValue(line.lhs, val, false);
                 PopContext();
             } else if (line.op == Line.Op.AssignImplicit) {
@@ -178,10 +167,6 @@ namespace Miniscript
                 }
             } else {
                 Value val = line.Evaluate(context);
-                bool unrefWhenDone = false
-                    || line.op == Line.Op.CallIntrinsicA // Intrinsics return a value that should be unreffed when done
-                    || line.op == Line.Op.CopyA         // If we just copied into a new val, then this should be unreffed when done
-                    ;
                 context.StoreValue(line.lhs, val, true);
             }
         }

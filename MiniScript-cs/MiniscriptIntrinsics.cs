@@ -1043,9 +1043,7 @@ namespace Miniscript {
 						Value keyj = keys[j];
 						Value temp = valMap[keyj];
                         // We're about to overwrite keyj, so Ref it now
-                        PoolableValue tempPool = temp as PoolableValue;
-                        if (tempPool != null)
-                            tempPool.Ref();
+                        temp?.Ref();
 						valMap[keyj] = valMap[keyi];
 						valMap[keyi] = temp;
 					}

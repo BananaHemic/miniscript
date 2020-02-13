@@ -13,6 +13,7 @@ namespace Miniscript
     /// call stack).
     /// </summary>
     public class Context : IDisposable {
+
         public List<Line> code;			// TAC lines we're executing
         public int lineNum;				// next line to be executed
         public ValMap variables;		// local variables for this call frame
@@ -24,11 +25,16 @@ namespace Miniscript
         public Machine vm;				// virtual machine
         public Intrinsic.Result partialResult;	// work-in-progress of our current intrinsic
         public int implicitResultCounter;	// how many times we have stored an implicit result
-        readonly List<Value> temps = new List<Value>();			// values of temporaries; temps[0] is always return value
-        readonly List<bool> tempUnref = new List<bool>();			// values of temporaries; temps[0] is always return value
+        readonly List<TempEntry> temps = new List<TempEntry>();			// values of temporaries; temps[0] is always return value
 
         [ThreadStatic]
         private static Stack<Context> _pool;
+
+        private struct TempEntry
+        {
+            public Value value;
+            public bool Unref;
+        }
 
         public bool done {
             get { return lineNum >= code.Count; }
@@ -98,15 +104,12 @@ namespace Miniscript
             int start = root == this ? 0 : 1;
             for(int i = start; i < temps.Count; i++)
             {
-                if (tempUnref[i])
-                {
-                    PoolableValue poolTempVal = temps[i] as PoolableValue;
-                    if (poolTempVal != null)
-                        poolTempVal.Unref();
-                }
+                TempEntry entry = temps[i];
+                if (!entry.Unref)
+                    continue;
+                entry.value?.Unref();
             }
             temps.Clear();
-            tempUnref.Clear();
             if (clearVariables)
             {
                 if(variables != null)
@@ -120,24 +123,30 @@ namespace Miniscript
         }
 
         public void SetTemp(int tempNum, Value value, bool unrefWhenDone) {
-            while (temps.Count <= tempNum)
+            if(temps.Count <= tempNum)
             {
-                temps.Add(null);
-                tempUnref.Add(false);
+                while (temps.Count <= tempNum)
+                    temps.Add(default(TempEntry));
             }
-            Value existing = temps[tempNum];
-            if (existing != null && tempUnref[tempNum])
-                existing.Unref();
-            temps[tempNum] = value;
-            tempUnref[tempNum] = unrefWhenDone;
+            else
+            {
+                TempEntry existing = temps[tempNum];
+                if (existing.Unref && existing.value != null)
+                    existing.value.Unref();
+            }
+            temps[tempNum] = new TempEntry
+            {
+                value = value,
+                Unref = unrefWhenDone
+            };
         }
 
         public Value GetTemp(int tempNum) {
-            return temps == null ? null : temps[tempNum];
+            return temps == null ? null : temps[tempNum].value;
         }
 
         public Value GetTemp(int tempNum, Value defaultValue) {
-            if (temps != null && tempNum < temps.Count) return temps[tempNum];
+            if (temps != null && tempNum < temps.Count) return temps[tempNum].value;
             return defaultValue;
         }
 
@@ -336,9 +345,7 @@ namespace Miniscript
             for (int i = 0; i < argCount; i++) {
                 // Careful -- when we pop them off, they're in reverse order.
                 Value argument = args.Pop();
-                PoolableValue poolArg = argument as PoolableValue;
-                if (poolArg != null)
-                    poolArg.Ref();
+                argument?.Ref();
                 int paramNum = argCount - 1 - i + selfParam;
                 if (paramNum >= func.parameters.Count) {
                     throw new TooManyArgumentsException();
@@ -348,9 +355,7 @@ namespace Miniscript
             // And fill in the rest with default values
             for (int paramNum = argCount+selfParam; paramNum < func.parameters.Count; paramNum++) {
                 Value defVal = func.parameters[paramNum].defaultValue;
-                PoolableValue poolArg = defVal as PoolableValue;
-                if (poolArg != null)
-                    poolArg.Ref();
+                defVal?.Ref();
                 result.SetVar(func.parameters[paramNum].name, defVal);
             }
 
