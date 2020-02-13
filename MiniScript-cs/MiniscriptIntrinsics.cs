@@ -556,9 +556,10 @@ namespace Miniscript {
 			// list type
 			f = Intrinsic.Create("list");
 			f.code = (context, partialResult) => {
-				if (context.vm.listType == null) {
-					context.vm.listType = ListType().EvalCopy(context.vm.globalContext);
-				}
+                if (context.vm.listType == null)
+                    context.vm.listType = ListType().EvalCopy(context.vm.globalContext);
+                else
+                    context.vm.listType.Ref();
 				return new Intrinsic.Result(context.vm.listType);
 			};
 			
@@ -584,24 +585,27 @@ namespace Miniscript {
 					string str = ((ValString)val).value;
 					return new Intrinsic.Result(str.ToLower());
 				}
+                val.Ref();
 				return new Intrinsic.Result(val);
 			};
 
 			// map type
 			f = Intrinsic.Create("map");
 			f.code = (context, partialResult) => {
-				if (context.vm.mapType == null) {
-					context.vm.mapType = MapType().EvalCopy(context.vm.globalContext);
-				}
+                if (context.vm.mapType == null)
+                    context.vm.mapType = MapType().EvalCopy(context.vm.globalContext);
+                else
+                    context.vm.mapType.Ref();
 				return new Intrinsic.Result(context.vm.mapType);
 			};
 			
 			// number type
 			f = Intrinsic.Create("number");
 			f.code = (context, partialResult) => {
-				if (context.vm.numberType == null) {
-					context.vm.numberType = NumberType().EvalCopy(context.vm.globalContext);
-				}
+                if (context.vm.numberType == null)
+                    context.vm.numberType = NumberType().EvalCopy(context.vm.globalContext);
+                else
+                    context.vm.numberType.Ref();
 				return new Intrinsic.Result(context.vm.numberType);
 			};
 			
@@ -1004,9 +1008,10 @@ namespace Miniscript {
 			// string type
 			f = Intrinsic.Create("string");
 			f.code = (context, partialResult) => {
-				if (context.vm.stringType == null) {
+				if (context.vm.stringType == null)
 					context.vm.stringType = StringType().EvalCopy(context.vm.globalContext);
-				}
+                else
+                    context.vm.stringType.Ref();
 				return new Intrinsic.Result(context.vm.stringType);
 			};
 
