@@ -18,23 +18,25 @@ namespace Miniscript
         [ThreadStatic]
         private static ValuePool<ValList> _valuePool;
         [ThreadStatic]
-        protected static uint _numInstancesAllocated = 0;
-        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
-        [ThreadStatic]
         private static StringBuilder _workingStringBuilder;
 
+#if MINISCRIPT_DEBUG
+        [ThreadStatic]
+        protected static uint _numInstancesAllocated = 0;
+        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
         private static int _num;
         public int _id;
+#endif
 
         private ValList(int capacity, bool poolable) : base(poolable) {
-            _id = _num++;
             values = new List<Value>(capacity);
+#if MINISCRIPT_DEBUG
+            _id = _num++;
+#endif
 		}
         public static ValList Create(int capacity=0)
         {
             //Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
-            if (_num == 1)
-            { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValList>();
             else
@@ -44,14 +46,19 @@ namespace Miniscript
                 {
                     existing._refCount = 1;
                     existing.EnsureCapacity(capacity);
+#if MINISCRIPT_DEBUG
                     existing._id = _num++;
+#endif
                     return existing;
                 }
             }
 
+#if MINISCRIPT_DEBUG
             _numInstancesAllocated++;
+#endif
             return new ValList(capacity, true);
         }
+#if MINISCRIPT_DEBUG
         public override void Ref()
         {
             if(_id == 1)
@@ -66,6 +73,7 @@ namespace Miniscript
                 Console.WriteLine("ValList #" + _id + " double unref");
             base.Unref();
         }
+#endif
         protected override void ResetState()
         {
             for(int i = 0; i < values.Count;i++)
@@ -76,19 +84,12 @@ namespace Miniscript
         public void Add(Value value, bool takeRef=true)
         {
             ValString str = value as ValString;
-            if (str != null && str._id == 109)
-            { }
-            if (_id == 10)
-                { }
             if (takeRef)
                 value?.Ref();
             values.Add(value);
         }
         public void SetToList(List<Value> recvValues)
         {
-            if (_id == 10)
-                { }
-
             // Ref all the input variables
             // we need to do this first, otherwise, there's
             // weird issues where we unref into the pool, then ref
@@ -118,11 +119,7 @@ namespace Miniscript
         }
         public void Insert(int idx, Value value)
         {
-            if (_id == 10)
-                { }
             ValString str = value as ValString;
-            if (str != null && str._id == 109)
-            { }
             value?.Ref();
             values.Insert(idx, value);
         }
@@ -239,8 +236,6 @@ namespace Miniscript
 				throw new IndexException("Index Error (list index " + index + " out of range)");
 			}
             ValString str = value as ValString;
-            if (str != null && str._id == 109)
-            { }
             // Unref existing
             values[i]?.Unref();
             // Ref new

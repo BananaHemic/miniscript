@@ -32,10 +32,13 @@ class MainClass {
 		Interpreter miniscript = new Interpreter(sourceLines);
 
         // Get the current number of PoolableVars in use across the system
+#if MINISCRIPT_DEBUG
         long numValNumAllocated = ValNumber.NumInstancesInUse;
         long numValStrAllocated = ValString.NumInstancesInUse;
         long numValMapAllocated = ValMap.NumInstancesInUse;
         long numValListAllocated = ValList.NumInstancesInUse;
+        ValNumber._instances.Clear();
+#endif
 
 		List<string> actualOutput = new List<string>();
         //miniscript.standardOutput = (string s) => { actualOutput.Add(s); Console.WriteLine(s); };
@@ -67,19 +70,26 @@ class MainClass {
 		}
 
         miniscript.Dispose();
+#if MINISCRIPT_DEBUG
         long finalNumValNumAllocated = ValNumber.NumInstancesInUse;
         long finalNumValStrAllocated = ValString.NumInstancesInUse;
         long finalNumValMapAllocated = ValMap.NumInstancesInUse;
         long finalNumValListAllocated = ValList.NumInstancesInUse;
 
         if (numValNumAllocated != finalNumValNumAllocated)
+        {
             Print(string.Format("Leaking ValNumber, was {0} now {1}", numValNumAllocated, finalNumValNumAllocated));
+            Console.Write("Unreturned: ");
+            foreach(var i in ValNumber._instances)
+                Console.Write(i + ", ");
+        }
         if (numValStrAllocated != finalNumValStrAllocated)
             Print(string.Format("Leaking ValString, was {0} now {1}", numValStrAllocated, finalNumValStrAllocated));
         if (numValMapAllocated != finalNumValMapAllocated)
             Print(string.Format("Leaking ValMap, was {0} now {1}", numValMapAllocated, finalNumValMapAllocated));
         if (numValListAllocated != finalNumValListAllocated)
             Print(string.Format("Leaking ValList, was {0} now {1}", numValListAllocated, finalNumValListAllocated));
+#endif
     }
 
 	static void RunTestSuite(string path) {
@@ -169,8 +179,8 @@ class MainClass {
         System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
         Console.WriteLine("--------------");
-        //RunTestSuite("../../../TestSuite.txt");
-        RunTestSuite("../../../TestSuite_min.txt");
+        RunTestSuite("../../../TestSuite.txt");
+        //RunTestSuite("../../../TestSuite_min.txt");
         //RunTestSuite("../../../TestSuite_split.txt");
         stopwatch.Stop();
         // Current time for full test: 256ms

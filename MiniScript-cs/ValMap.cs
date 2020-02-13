@@ -22,23 +22,24 @@ namespace Miniscript
         [ThreadStatic]
         protected static ValuePool<ValMap> _valuePool;
         [ThreadStatic]
+        private static StringBuilder _workingStringBuilder;
+#if MINISCRIPT_DEBUG
+        [ThreadStatic]
         protected static uint _numInstancesAllocated = 0;
         public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
-        [ThreadStatic]
-        private static StringBuilder _workingStringBuilder;
-
         private static int _num;
-        private int _id;
+        public int _id;
+#endif
 
 		private ValMap(bool usePool) : base(usePool) {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
+#if MINISCRIPT_DEBUG
             _id = _num++;
+#endif
 		}
         public static ValMap Create()
         {
             //Console.WriteLine("Creating ValMap ID " + _num);
-            if (_num == 8)
-            { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValMap>();
             else
@@ -47,24 +48,27 @@ namespace Miniscript
                 if (valMap != null)
                 {
                     valMap._refCount = 1;
+#if MINISCRIPT_DEBUG
                     valMap._id = _num++;
+#endif
                     return valMap;
                 }
             }
+#if MINISCRIPT_DEBUG
             _numInstancesAllocated++;
+#endif
             return new ValMap(true);
         }
+#if MINISCRIPT_DEBUG
         public override void Ref()
         {
-            if (_id == 8)
-            { }
             base.Ref();
             //Console.WriteLine("ValMap Ref ref count " + base._refCount);
         }
         public override void Unref()
         {
-            if (_id == 8)
-            { }
+            if (_refCount == 0)
+                Console.WriteLine("Extra unref for map ID #" + _id);
             base.Unref();
 
             // Handle de-ref when a map self-references.
@@ -96,18 +100,13 @@ namespace Miniscript
 
             //Console.WriteLine("ValMap unref ref count " + base._refCount);
         }
+#endif
         protected override void ResetState()
         {
-            if (_id == 13)
-            { }
             foreach(var kvp in map)
             {
-                PoolableValue poolableKey = kvp.Key as PoolableValue;
-                PoolableValue poolableVal = kvp.Value as PoolableValue;
-                if (poolableKey != null)
-                    poolableKey.Unref();
-                if (poolableVal != null)
-                    poolableVal.Unref();
+                kvp.Key?.Unref();
+                kvp.Value?.Unref();
             }
             _keys.Clear();
             map.Clear();
@@ -137,15 +136,11 @@ namespace Miniscript
 		}
 		public void SetElem(Value index, Value value, bool takeValueRef, bool takeIndexRef=true) {
             ValNumber newNum = value as ValNumber;
-            if (newNum != null && newNum._id == 70)
-            { }
-            if (_id == 13)
-            { }
             //Console.WriteLine("Map set elem " + index.ToString() + ": " + value.ToString());
             if (takeValueRef)
-                value.Ref();
+                value?.Ref();
             if (takeIndexRef)
-                index.Ref();
+                index?.Ref();
 			if (index == null) index = ValNull.instance;
 			if (assignOverride == null || !assignOverride(index, value)) {
 
@@ -168,8 +163,6 @@ namespace Miniscript
 		}
         public bool Remove(Value keyVal)
         {
-            if (_id == 13)
-            { }
             // Pull the current key/value so that we can unref it
             if(map.TryGetValue(keyVal, out Value existing))
             {

@@ -120,10 +120,6 @@ namespace Miniscript
         }
 
         public void SetTemp(int tempNum, Value value, bool unrefWhenDone) {
-
-            ValNumber v = value as ValNumber;
-            if (v != null && v._id == 68)
-            { }
             while (temps.Count <= tempNum)
             {
                 temps.Add(null);
@@ -159,9 +155,6 @@ namespace Miniscript
         }
         public void SetVar(string identifier, Value value)
         {
-            ValNumber tmp = value as ValNumber;
-            if (tmp != null && tmp._id == 68)
-            { }
             if (identifier == "globals" || identifier == "locals") {
                 throw new RuntimeException("can't assign to " + identifier);
             }

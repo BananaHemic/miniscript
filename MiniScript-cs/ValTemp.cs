@@ -17,12 +17,8 @@ namespace Miniscript
 
 		public override Value Val(Context context, bool takeRef) {
 			Value v = context.GetTemp(tempNum);
-            if (takeRef)
-            {
-                PoolableValue pool = v as PoolableValue;
-                if (pool != null)
-                    pool.Ref();
-            }
+            if (takeRef && v != null)
+                v.Ref();
             return v;
 		}
 

@@ -51,6 +51,5 @@ namespace Miniscript
 			var other = (ValFunction)rhs;
 			return function == other.function ? 1 : 0;
 		}
-
 	}
 }

@@ -15,22 +15,28 @@ namespace Miniscript
 		public double value { get; private set; }
         [ThreadStatic]
         protected static ValuePool<ValNumber> _valuePool;
+#if MINISCRIPT_DEBUG
         [ThreadStatic]
         protected static uint _numInstancesAllocated = 0;
         public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
 
         private static int _num = 0;
+        public static List<int> _instances = new List<int>();
         public int _id;
+#endif
 
 		private ValNumber(double value, bool usePool) : base(usePool) {
 			this.value = value;
+#if MINISCRIPT_DEBUG
             this._id = _num++;
+#endif
 		}
         public static ValNumber Create(double value)
         {
             //Console.WriteLine("Alloc num " + value + " ID " + (_num));
-            if ((_num) == 68)
-            { }
+#if MINISCRIPT_DEBUG
+            _instances.Add(_num);
+#endif
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValNumber>();
             else
@@ -40,45 +46,38 @@ namespace Miniscript
                 {
                     val._refCount = 1;
                     val.value = value;
+#if MINISCRIPT_DEBUG
                     val._id = _num++;
+#endif
                     return val;
                 }
             }
+#if MINISCRIPT_DEBUG
             _numInstancesAllocated++;
+#endif
 
             return new ValNumber(value, true);
         }
+#if MINISCRIPT_DEBUG
         public override void Unref()
         {
-            if (_id == 68)
-            { }
-            if (base._refCount == 1)
-            {
+            //if (base._refCount == 1)
                 //Console.WriteLine("Recyclying val " + value + " ID " + _id);
-            }
             if (base._refCount == 0)
                 Console.WriteLine("Extra unref Val: " + value + " ID " + _id);
             base.Unref();
         }
         public override void Ref()
         {
-            if (_id == 68)
-            { }
             base.Ref();
         }
-        //public override Value Val(TAC.Context context)
-        //{
-        //    int prevRef = _refCount;
-        //    Value v = base.Val(context);
-        //    //Console.WriteLine("Due to val, ref increased from " + prevRef + " to " + _refCount + " value " + value);
-        //    if (value == 5)
-        //    {
-        //        Console.WriteLine("Due to val, ref increased from " + prevRef + " to " + _refCount + " value " + value);
-        //    }
-        //    return v;
-        //}
+#endif
         protected override void ResetState() {
             //Console.WriteLine("Return num " + value + " ID " + _id);
+#if MINISCRIPT_DEBUG
+            if (!_instances.Remove(_id))
+                Console.WriteLine("Extra ID " + _id);
+#endif
         }
         protected override void ReturnToPool()
         {

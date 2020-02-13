@@ -16,12 +16,17 @@ namespace Miniscript
         [ThreadStatic]
         protected static ValuePool<ValString> _valuePool;
         [ThreadStatic]
-        protected static uint _numInstancesAllocated = 0;
-        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
-        [ThreadStatic]
         private static StringBuilder _workingSbA;
         [ThreadStatic]
         private static StringBuilder _workingSbB;
+
+#if MINISCRIPT_DEBUG
+        [ThreadStatic]
+        protected static uint _numInstancesAllocated = 0;
+        public static long NumInstancesInUse { get { return _numInstancesAllocated - (_valuePool == null ? 0 : _valuePool.Count); } }
+        private static int _num;
+        public int _id;
+#endif
 
         //TODO add create with ValString for fast add
         public static ValString Create(string val, bool usePool=true) {
@@ -48,9 +53,7 @@ namespace Miniscript
                     return lenStr;
             }
 
-            //Console.WriteLine("Alloc str \"" + val + "\"");
-            if (val == "r")
-            { }
+            //Console.WriteLine("Alloc str \"" + val + "\" num " + _num);
 
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValString>();
@@ -61,44 +64,44 @@ namespace Miniscript
                 {
                     valStr._refCount = 1;
                     valStr.value = val;
+#if MINISCRIPT_DEBUG
+                    valStr._id = _num++;
+#endif
                     return valStr;
                 }
             }
 
+#if MINISCRIPT_DEBUG
             _numInstancesAllocated++;
+#endif
             return new ValString(val, true);
         }
 		protected ValString(string value, bool usePool) : base(usePool) {
 			this.value = value ?? _empty.value;
-            //base._refCount = 0;
+#if MINISCRIPT_DEBUG
+            _id = _num++;
+#endif
 		}
+#if MINISCRIPT_DEBUG
         public override void Ref()
         {
             if (!base._poolable)
                 return;
-            if (value == "r")
-            { }
-                //Console.WriteLine("Str " + value + " ref, ref count #" + _refCount);
-                base.Ref();
+            //Console.WriteLine("Str " + value + " ref, ref count #" + _refCount);
+            base.Ref();
         }
         public override void Unref()
         {
             if (!base._poolable)
                 return;
             if (base._refCount == 0)
-            {
-                Console.WriteLine("Extra unref for: " + value);
-            }
-            if (value == "r")
-            { }
+                Console.WriteLine("Extra unref for: " + value + " ID " + _id);
             base.Unref();
-            //if (value == "zzz")
-                //Console.WriteLine("Str " + value + " unref, ref count #" + _refCount);
         }
+#endif
         protected override void ResetState()
         {
-            //Console.WriteLine("Str \"" + value + "\" back in pool");
-            //value = null;
+            value = null;
         }
         protected override void ReturnToPool()
         {
