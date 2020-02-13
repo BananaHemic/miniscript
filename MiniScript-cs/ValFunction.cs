@@ -12,13 +12,17 @@ namespace Miniscript
 	public class ValFunction : Value {
 		public Function function;
 		public ValMap outerVars;	// local variables where the function was defined (usually, the module)
+        private readonly bool _usePool;
 
-		public ValFunction(Function function) {
+		public ValFunction(Function function, bool usePool = true) {
 			this.function = function;
+            _usePool = usePool;
 		}
 
         public void Dispose()
         {
+            if (!_usePool)
+                return;
             if (function != null)
                 function.Dispose();
             function = null;

@@ -77,7 +77,7 @@ namespace Miniscript {
 			result.name = name;
 			result.numericID = all.Count;
 			result.function = new Function(null);
-			result.valFunction = new ValFunction(result.function);
+			result.valFunction = new ValFunction(result.function, false);
 			all.Add(result);
 			nameMap[name] = result;
 			return result;
