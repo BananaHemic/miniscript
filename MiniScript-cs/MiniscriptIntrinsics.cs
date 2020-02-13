@@ -408,14 +408,14 @@ namespace Miniscript {
 					string str = ((ValString)self).value;
                     ValList indexes = ValList.Create(str.Length);
 					for (int i = 0; i < str.Length; i++) {
-						indexes.Add(TAC.Num(i));
+						indexes.Add(TAC.Num(i), false);
 					}
 					return new Intrinsic.Result(indexes);
 				} else if (self is ValList) {
 					List<Value> list = ((ValList)self).values;
                     ValList indexes = ValList.Create(list.Count);
 					for (int i = 0; i < list.Count; i++) {
-						indexes.Add(TAC.Num(i));
+						indexes.Add(TAC.Num(i), false);
 					}
 					return new Intrinsic.Result(indexes);
 				}
@@ -979,9 +979,9 @@ namespace Miniscript {
 					else if (delim.Length == 0) nextPos = pos+1;
 					else nextPos = self.IndexOf(delim, pos, StringComparison.InvariantCulture);
 					if (nextPos < 0) nextPos = self.Length;
-					result.Add(ValString.Create(self.Substring(pos, nextPos - pos)));
+					result.Add(ValString.Create(self.Substring(pos, nextPos - pos)), false);
 					pos = nextPos + delim.Length;
-					if (pos == self.Length && delim.Length > 0) result.Add(ValString.empty);
+					if (pos == self.Length && delim.Length > 0) result.Add(ValString.empty, false);
 				}
 				return new Intrinsic.Result(result);
 			};
@@ -1130,7 +1130,7 @@ namespace Miniscript {
                     string str = ((ValString)self).value;
                     ValList values = ValList.Create(str.Length);
                     for (int i = 0; i < str.Length; i++) {
-                        values.Add(TAC.Str(str[i].ToString()));
+                        values.Add(TAC.Str(str[i].ToString()), false);
                     }
                     return new Intrinsic.Result(values);
                 }
