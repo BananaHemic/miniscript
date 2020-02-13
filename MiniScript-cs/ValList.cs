@@ -32,8 +32,8 @@ namespace Miniscript
 		}
         public static ValList Create(int capacity=0)
         {
-            Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
-            if (_num == 0)
+            //Console.WriteLine("ValList create cap = " + capacity + " ID " + _num);
+            if (_num == 1)
             { }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValList>();
@@ -54,13 +54,13 @@ namespace Miniscript
         }
         public override void Ref()
         {
-            if(_id == 0)
+            if(_id == 1)
             { }
             base.Ref();
         }
         public override void Unref()
         {
-            if(_id == 0)
+            if(_id == 1)
             { }
             if(base._refCount == 0)
                 Console.WriteLine("ValList #" + _id + " double unref");
@@ -69,16 +69,17 @@ namespace Miniscript
         protected override void ResetState()
         {
             for(int i = 0; i < values.Count;i++)
-            {
-                PoolableValue valPool = values[i] as PoolableValue;
-                if (valPool != null)
-                    valPool.Unref();
-            }
-            Console.WriteLine("ValList #" + _id + " back in pool");
+                values[i].Unref();
+            //Console.WriteLine("ValList #" + _id + " back in pool");
             values.Clear();
         }
         public void Add(Value value, bool takeRef=true)
         {
+            ValString str = value as ValString;
+            if (str != null && str._id == 109)
+            { }
+            if (_id == 10)
+                { }
             if (takeRef)
             {
                 PoolableValue valPool = value as PoolableValue;
@@ -89,15 +90,21 @@ namespace Miniscript
         }
         public void SetToList(List<Value> recvValues)
         {
-            ResetState();
-            for(int i = 0; i < recvValues.Count;i++)
-            {
-                Value value = recvValues[i];
-                PoolableValue valPool = value as PoolableValue;
-                if (valPool != null)
-                    valPool.Ref();
-                values.Add(value);
-            }
+            if (_id == 10)
+                { }
+
+            // Ref all the input variables
+            // we need to do this first, otherwise, there's
+            // weird issues where we unref into the pool, then ref
+            for (int i = 0; i < recvValues.Count; i++)
+                recvValues[i]?.Ref();
+            // Unref the values we have
+            for (int i = 0; i < values.Count; i++)
+                values[i]?.Unref();
+            values.Clear();
+            // Copy them over
+            for (int i = 0; i < recvValues.Count; i++)
+                values.Add(recvValues[i]);
         }
         public void EnsureCapacity(int capacity)
         {
@@ -111,9 +118,15 @@ namespace Miniscript
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValList>();
             _valuePool.ReturnToPool(this);
+            //Console.WriteLine("ValList #" + _id + " returned");
         }
         public void Insert(int idx, Value value)
         {
+            if (_id == 10)
+                { }
+            ValString str = value as ValString;
+            if (str != null && str._id == 109)
+            { }
             PoolableValue poolableValue = value as PoolableValue;
             if (poolableValue != null)
                 poolableValue.Ref();
@@ -231,6 +244,9 @@ namespace Miniscript
 			if (i < 0 || i >= values.Count) {
 				throw new IndexException("Index Error (list index " + index + " out of range)");
 			}
+            ValString str = value as ValString;
+            if (str != null && str._id == 109)
+            { }
             // Unref existing
             PoolableValue existing = values[i] as PoolableValue;
             if (existing != null)
@@ -264,6 +280,9 @@ namespace Miniscript
         {
             get { return values[i]; }
             set {
+            ValString str = value as ValString;
+            if (str != null && str._id == 109)
+            { }
                 // Unref existing
                 PoolableValue existing = values[i] as PoolableValue;
                 if (existing != null)
