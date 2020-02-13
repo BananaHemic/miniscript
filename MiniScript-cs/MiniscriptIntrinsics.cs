@@ -493,6 +493,7 @@ namespace Miniscript {
 					if (idx < 0) idx += list.Count + 1;	// +1 because we are inserting AND counting from the end.
 					Check.Range(idx, 0, list.Count);	// and allowing all the way up to .Count here, because insert.
 					list.Insert(idx, value);
+                    self.Ref(); // It's expected that intrinsics either return a new value, or ref the value that they return
 					return new Intrinsic.Result(self);
 				} else if (self is ValString) {
 					string s = self.ToString();
