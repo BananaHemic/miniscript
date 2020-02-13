@@ -37,6 +37,20 @@ namespace Miniscript
 #if MINISCRIPT_DEBUG
             _instances.Add(_num);
 #endif
+            // Use a predefined static for common values
+            switch (value)
+            {
+                case -1:
+                    return _negativeOne;
+                case 0:
+                    return _zero;
+                case 1:
+                    return _one;
+                case 2:
+                    return _two;
+                case 3:
+                    return _three;
+            }
             if (_valuePool == null)
                 _valuePool = new ValuePool<ValNumber>();
             else
@@ -127,7 +141,11 @@ namespace Miniscript
 			return rhs is ValNumber && ((ValNumber)rhs).value == value ? 1 : 0;
 		}
 
-		static ValNumber _zero = new ValNumber(0, false), _one = new ValNumber(1, false);
+        static ValNumber _zero = new ValNumber(0, false);
+        static ValNumber _one = new ValNumber(1, false);
+        static ValNumber _two = new ValNumber(2, false);
+        static ValNumber _three = new ValNumber(3, false);
+        static ValNumber _negativeOne = new ValNumber(-1, false);
 		
 		/// <summary>
 		/// Handy accessor to a shared "zero" (0) value.
