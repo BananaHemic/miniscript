@@ -69,7 +69,7 @@ namespace Miniscript
         protected override void ResetState()
         {
             for(int i = 0; i < values.Count;i++)
-                values[i].Unref();
+                values[i]?.Unref();
             //Console.WriteLine("ValList #" + _id + " back in pool");
             values.Clear();
         }
@@ -81,11 +81,7 @@ namespace Miniscript
             if (_id == 10)
                 { }
             if (takeRef)
-            {
-                PoolableValue valPool = value as PoolableValue;
-                if (valPool != null)
-                    valPool.Ref();
-            }
+                value?.Ref();
             values.Add(value);
         }
         public void SetToList(List<Value> recvValues)
@@ -127,9 +123,7 @@ namespace Miniscript
             ValString str = value as ValString;
             if (str != null && str._id == 109)
             { }
-            PoolableValue poolableValue = value as PoolableValue;
-            if (poolableValue != null)
-                poolableValue.Ref();
+            value?.Ref();
             values.Insert(idx, value);
         }
         public override Value FullEval(Context context) {
@@ -141,7 +135,7 @@ namespace Miniscript
 			for (var i = 0; i < values.Count; i++) {
 				var copied = false;
 				if (values[i] is ValTemp || values[i] is ValVar) {
-					Value newVal = values[i].Val(context, true);
+					Value newVal = values[i].Val(context, false);
 					if (newVal != values[i]) {
 						// OK, something changed, so we're going to need a new copy of the list.
 						if (result == null) {
@@ -248,23 +242,15 @@ namespace Miniscript
             if (str != null && str._id == 109)
             { }
             // Unref existing
-            PoolableValue existing = values[i] as PoolableValue;
-            if (existing != null)
-                existing.Unref();
+            values[i]?.Unref();
             // Ref new
             if (takeValueRef)
-            {
-                PoolableValue poolVal = value as PoolableValue;
-                if (poolVal != null)
-                    poolVal.Ref();
-            }
+                value?.Ref();
 			values[i] = value;
 		}
         public void RemoveAt(int i)
         {
-            PoolableValue existing = values[i] as PoolableValue;
-            if (existing != null)
-                existing.Unref();
+            values[i]?.Unref();
             values.RemoveAt(i);
         }
         public Value GetElem(Value index) {
@@ -280,17 +266,8 @@ namespace Miniscript
         {
             get { return values[i]; }
             set {
-            ValString str = value as ValString;
-            if (str != null && str._id == 109)
-            { }
-                // Unref existing
-                PoolableValue existing = values[i] as PoolableValue;
-                if (existing != null)
-                    existing.Unref();
-                // Ref new
-                PoolableValue poolVal = value as PoolableValue;
-                if (poolVal != null)
-                    poolVal.Ref();
+                values[i]?.Unref();
+                value?.Ref();
                 values[i] = value;
             }
         }
