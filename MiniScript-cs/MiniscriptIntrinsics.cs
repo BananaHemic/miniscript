@@ -514,7 +514,11 @@ namespace Miniscript {
 			f.code = (context, partialResult) => {
 				Value val = context.GetVar("self");
 				string delim = context.GetVar("delimiter").ToString();
-				if (!(val is ValList)) return new Intrinsic.Result(val);
+                if (!(val is ValList))
+                {
+                    val.Ref();
+                    return new Intrinsic.Result(val);
+                }
 				ValList src = (val as ValList);
                 if (_workingStringBuilder == null)
                     _workingStringBuilder = new StringBuilder();
@@ -627,12 +631,14 @@ namespace Miniscript {
                     ValList list = self as ValList;
 					if (list.Count < 1) return Intrinsic.Result.Null;
 					Value result = list[list.Count-1];
+                    result.Ref();
 					list.RemoveAt(list.Count-1);
 					return new Intrinsic.Result(result);
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
 					if (map.Count < 1) return Intrinsic.Result.Null;
 					Value result = map.Keys.First();
+                    result.Ref();
 					map.Remove(result);
 					return new Intrinsic.Result(result);
 				}
@@ -649,12 +655,14 @@ namespace Miniscript {
                     ValList list = self as ValList;
 					if (list.Count < 1) return Intrinsic.Result.Null;
 					Value result = list[0];
+                    result.Ref();
 					list.RemoveAt(0);
 					return new Intrinsic.Result(result);
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
 					if (map.Count < 1) return Intrinsic.Result.Null;
 					Value result = map.Keys.First();
+                    result.Ref();
 					map.Remove(result);
 					return new Intrinsic.Result(result);
 				}
@@ -672,10 +680,12 @@ namespace Miniscript {
 				if (self is ValList) {
                     ValList list = self as ValList;
 					list.Add(value);
+                    self.Ref();
 					return new Intrinsic.Result(self);
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
 					map[value] = ValNumber.one;
+                    self.Ref();
 					return new Intrinsic.Result(self);
 				}
 				return Intrinsic.Result.Null;
@@ -742,7 +752,11 @@ namespace Miniscript {
 					ValString selfStr = (ValString)self;
 					string substr = k.ToString();
 					int foundPos = selfStr.value.IndexOf(substr);
-					if (foundPos < 0) return new Intrinsic.Result(self);
+                    if (foundPos < 0)
+                    {
+                        self.Ref();
+                        return new Intrinsic.Result(self);
+                    }
 					return new Intrinsic.Result(selfStr.value.Remove(foundPos, substr.Length));
 				}
 				throw new TypeException("Type Error: 'remove' requires map, list, or string");
@@ -766,7 +780,11 @@ namespace Miniscript {
 				int maxCount = -1;
 				if (maxCountVal != null) {
 					maxCount = maxCountVal.IntValue();
-					if (maxCount < 1) return new Intrinsic.Result(self);
+                    if (maxCount < 1)
+                    {
+                        self.Ref();
+                        return new Intrinsic.Result(self);
+                    }
 				}
 				int count = 0;
 				if (self is ValMap) {
@@ -786,6 +804,7 @@ namespace Miniscript {
 					if (keysToChange != null) foreach (Value k in keysToChange) {
 						selfMap[k] = newval;
 					}
+                    self.Ref();
 					return new Intrinsic.Result(self);
 				} else if (self is ValList) {
 					ValList selfList = (ValList)self;
@@ -797,6 +816,7 @@ namespace Miniscript {
 						count++;
 						if (maxCount > 0 && count == maxCount) break;
 					}
+                    self.Ref();
 					return new Intrinsic.Result(self);
 				} else if (self is ValString) {
 					string str = self.ToString();
@@ -896,7 +916,11 @@ namespace Miniscript {
 			f.code = (context, partialResult) => {
 				Value self = context.GetVar("self");
 				ValList list = self as ValList;
-				if (list == null || list.Count < 2) return new Intrinsic.Result(self);
+                if (list == null || list.Count < 2)
+                {
+                    self.Ref();
+                    return new Intrinsic.Result(self);
+                }
 				
 				Value byKey = context.GetVar("byKey");
 				if (byKey == null) {
@@ -1067,6 +1091,7 @@ namespace Miniscript {
 					string str = ((ValString)val).value;
 					return new Intrinsic.Result(str.ToUpper());
 				}
+                val.Ref();
 				return new Intrinsic.Result(val);
 			};
 			
@@ -1075,7 +1100,11 @@ namespace Miniscript {
 			f.AddParam("self", 0);
 			f.code = (context, partialResult) => {
 				Value val = context.GetVar("self");
-				if (val is ValNumber) return new Intrinsic.Result(val);
+                if (val is ValNumber)
+                {
+                    val.Ref();
+                    return new Intrinsic.Result(val);
+                }
 				if (val is ValString) {
 					double value = 0;
 					double.TryParse(val.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out value);
@@ -1105,6 +1134,7 @@ namespace Miniscript {
                     }
                     return new Intrinsic.Result(values);
                 }
+                self.Ref();
                 return new Intrinsic.Result(self);
             };
 
