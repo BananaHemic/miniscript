@@ -24,8 +24,11 @@ namespace Miniscript
         protected abstract void ReturnToPool();
         public override void Ref()
         {
-            if (_poolable)
-                _refCount++;
+            if (!_poolable)
+                return;
+            if (_refCount == 0)
+                Console.WriteLine("Reffed out of the pool!");
+            _refCount++;
         }
         public int GetRefCount()
         {
