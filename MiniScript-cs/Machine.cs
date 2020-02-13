@@ -128,7 +128,11 @@ namespace Miniscript
                     int argCount = line.rhsB.IntValue();
                     Context nextContext = context.NextCallContext(func.function, argCount, self != null, line.lhs);
                     nextContext.outerVars = func.outerVars;
-                    if (valueFoundIn != null) nextContext.SetVar("super", super);
+                    if (valueFoundIn != null)
+                    {
+                        super?.Ref();
+                        nextContext.SetVar("super", super);
+                    }
                     if (self != null)
                     {
                         // Take a ref to self
