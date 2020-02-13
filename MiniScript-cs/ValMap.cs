@@ -159,6 +159,7 @@ namespace Miniscript
                     existing.Unref();
                     // Try to get the key that's there and unref it
                     Value existingKey = RemoveBySwap(_keys, index);
+                    map.Remove(existingKey);
                     if (existingKey != null)
                         existingKey.Unref();
                 }
