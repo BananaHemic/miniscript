@@ -285,7 +285,11 @@ namespace Miniscript {
 		/// <param name="varName">name of global variable to set</param>
 		/// <param name="value">value to set</param>
 		public void SetGlobalValue(string varName, Value value) {
-			if (vm != null) vm.globalContext.SetVar(varName, value);
+            if (vm != null)
+            {
+                value.Ref();
+                vm.globalContext.SetVar(varName, value);
+            }
 		}
 		
 		/// <summary>
