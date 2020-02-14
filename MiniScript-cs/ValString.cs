@@ -42,6 +42,14 @@ namespace Miniscript
                     return sStr;
                 case "self":
                     return selfStr;
+                case "x":
+                    return xStr;
+                case "y":
+                    return yStr;
+                case "z":
+                    return zStr;
+                case "w":
+                    return wStr;
                 case "to":
                     return toStr;
                 case "from":
@@ -179,6 +187,10 @@ namespace Miniscript
 		// Magic identifier for the is-a entry in the class system:
 		public static ValString selfStr = new ValString("self", false);
 		public static ValString eventsStr = new ValString("__events", false);
+		public static ValString xStr = new ValString("x", false);
+		public static ValString yStr = new ValString("y", false);
+		public static ValString zStr = new ValString("z", false);
+		public static ValString wStr = new ValString("w", false);
 		public static ValString yieldStr = new ValString("yield", false);
 		public static ValString magicIsA = new ValString("__isa", false);
 		public static ValString sStr = new ValString("s", false);// Common, on account of print using this
