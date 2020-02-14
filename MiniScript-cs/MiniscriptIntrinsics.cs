@@ -76,7 +76,7 @@ namespace Miniscript {
 			Intrinsic result = new Intrinsic();
 			result.name = name;
 			result.numericID = all.Count;
-			result.function = new Function(null);
+			result.function = new Function(null, false);
 			result.valFunction = new ValFunction(result.function, false);
 			all.Add(result);
 			nameMap[name] = result;

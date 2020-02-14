@@ -14,7 +14,7 @@ namespace Miniscript
     public abstract class PoolableValue : Value
     {
         protected int _refCount = 1;
-        protected readonly bool _poolable;
+        protected bool _poolable;
 
         protected PoolableValue(bool usePool)
         {
@@ -53,10 +53,6 @@ namespace Miniscript
         }
         public override Value Val(Context context, bool takeRef)
         {
-            //TODO I think that this is wrong, sometimes
-            // I believe that Val returns a new Value,
-            // instead of the existing one
-            //Console.WriteLine("valref");
             if(takeRef)
                 Ref();
             return base.Val(context, takeRef);
@@ -70,7 +66,7 @@ namespace Miniscript
 
         protected class ValuePool<T> where T : PoolableValue
         {
-            private readonly Stack<T> _pool = new Stack<T>();
+            private Stack<T> _pool = new Stack<T>();
             public int Count { get { return _pool.Count; } }
 
             public T GetInstance()

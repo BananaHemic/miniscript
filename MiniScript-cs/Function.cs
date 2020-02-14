@@ -15,6 +15,7 @@ namespace Miniscript
 	public class Function {
         [ThreadStatic]
         private static StringBuilder _workingStringBuilder;
+        public bool _usePool;
 		/// <summary>
 		/// Param: helper class representing a function parameter.
 		/// </summary>
@@ -34,13 +35,16 @@ namespace Miniscript
 		// Function code (compiled down to TAC form)
 		public List<Line> code;
 
-		public Function(List<Line> code) {
+		public Function(List<Line> code, bool usePool=true) {
 			this.code = code;
+            _usePool = usePool;
 			parameters = new List<Param>();
 		}
 
         public void Dispose()
         {
+            if (!_usePool)
+                return;
             foreach(var p in parameters)
             {
                 if (p.defaultValue != null)
