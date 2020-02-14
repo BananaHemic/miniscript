@@ -40,8 +40,8 @@ namespace Miniscript
             {
                 case "s":
                     return sStr;
-                case " ":
-                    return spaceStr;
+                case "self":
+                    return selfStr;
                 case "to":
                     return toStr;
                 case "from":
@@ -50,12 +50,16 @@ namespace Miniscript
                     return magicIsA;
                 case "seq":
                     return seqStr;
-                case "self":
-                    return selfStr;
                 case "super":
                     return superStr;
                 case "len":
                     return lenStr;
+                case "__events":
+                    return eventsStr;
+                case "yield":
+                    return yieldStr;
+                case " ":
+                    return spaceStr;
             }
 
             //Console.WriteLine("Alloc str \"" + val + "\" num " + _num);
@@ -173,8 +177,10 @@ namespace Miniscript
 		}
 
 		// Magic identifier for the is-a entry in the class system:
-		public static ValString magicIsA = new ValString("__isa", false);
 		public static ValString selfStr = new ValString("self", false);
+		public static ValString eventsStr = new ValString("__events", false);
+		public static ValString yieldStr = new ValString("yield", false);
+		public static ValString magicIsA = new ValString("__isa", false);
 		public static ValString sStr = new ValString("s", false);// Common, on account of print using this
 		public static ValString spaceStr = new ValString(" ", false);
 		public static ValString fromStr = new ValString("from", false);
