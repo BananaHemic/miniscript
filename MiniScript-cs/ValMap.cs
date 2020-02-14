@@ -205,9 +205,9 @@ namespace Miniscript
         /// <returns>value associated with that key</returns>
         public Value this [string identifier] {
 			get { 
-				var idVal = TempValString.Get(identifier);
+				var idVal = ValString.Create(identifier);
 				Value result = Lookup(idVal);
-				TempValString.Release(idVal);
+                idVal.Unref();
 				return result;
 			}
 			set {
@@ -230,9 +230,9 @@ namespace Miniscript
 		/// <param name="identifier">string key to check for</param>
 		/// <returns>true if the map contains that key; false otherwise</returns>
 		public bool ContainsKey(string identifier) {
-			var idVal = TempValString.Get(identifier);
+			var idVal = ValString.Create(identifier);
 			bool result = map.ContainsKey(idVal);
-			TempValString.Release(idVal);
+            idVal.Unref();
 			return result;
 		}
 
@@ -285,9 +285,9 @@ namespace Miniscript
 		/// <param name="identifier">identifier to look up</param>
 		/// <returns>true if found, false if not</returns>
 		public bool TryGetValue(string identifier, out Value value) {
-			var idVal = TempValString.Get(identifier);
+			var idVal = ValString.Create(identifier);
 			bool result = map.TryGetValue(idVal, out value);
-			TempValString.Release(idVal);
+            idVal.Unref();
 			return result;
 		}
 		/// <summary>

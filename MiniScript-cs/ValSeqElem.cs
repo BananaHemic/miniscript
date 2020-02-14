@@ -78,9 +78,9 @@ namespace Miniscript
 				if (sequence is ValMap) {
 					// If the map contains this identifier, return its value.
 					Value result = null;
-					var idVal = TempValString.Get(identifier);
+					var idVal = ValString.Create(identifier);
 					bool found = ((ValMap)sequence).TryGetValue(idVal, out result);
-					TempValString.Release(idVal);
+                    idVal.Unref();
 					if (found) {
 						valueFoundIn = (ValMap)sequence;
 						return result;

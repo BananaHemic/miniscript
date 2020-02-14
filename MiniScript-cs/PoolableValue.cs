@@ -75,8 +75,8 @@ namespace Miniscript
                     return null;
                 //Console.WriteLine("from pool");
                 T val = _pool.Pop();
-                // TODO sometimes we create a Value and immediately assign it to
-                // a map. In this case, the ref count here should be 0!
+                if(val._refCount != 0)
+                    Console.WriteLine("Error, pulled value with too high a ref, " + val._refCount + " type " + val.GetType().ToString());
                 return val;
             }
             public void ReturnToPool(T poolableValue)

@@ -13,6 +13,9 @@ namespace Miniscript
 		public static long maxSize = 0xFFFFFF;		// about 16M elements
 		
 		public string value { get; protected set; }
+        private bool _hasCachedHash = false;
+        private int _cachedHash;
+
         [ThreadStatic]
         protected static ValuePool<ValString> _valuePool;
         [ThreadStatic]
@@ -35,6 +38,8 @@ namespace Miniscript
 
             switch (val)
             {
+                case "s":
+                    return sStr;
                 case " ":
                     return spaceStr;
                 case "to":
@@ -77,7 +82,7 @@ namespace Miniscript
             return new ValString(val, true);
         }
 		protected ValString(string value, bool usePool) : base(usePool) {
-			this.value = value ?? _empty.value;
+			this.value = value ?? empty.value;
 #if MINISCRIPT_DEBUG
             _id = _num++;
 #endif
@@ -101,6 +106,7 @@ namespace Miniscript
 #endif
         protected override void ResetState()
         {
+            _hasCachedHash = false;
             value = null;
         }
         protected override void ReturnToPool()
@@ -144,7 +150,11 @@ namespace Miniscript
 		}
 
 		public override int Hash(int recursionDepth=16) {
-			return value.GetHashCode();
+            if (!_hasCachedHash) {
+                _cachedHash = value.GetHashCode();
+                _hasCachedHash = true;
+            }
+            return _cachedHash;
 		}
 
 		public override double Equality(Value rhs, int recursionDepth=16) {
@@ -164,54 +174,14 @@ namespace Miniscript
 
 		// Magic identifier for the is-a entry in the class system:
 		public static ValString magicIsA = new ValString("__isa", false);
-
 		public static ValString selfStr = new ValString("self", false);
+		public static ValString sStr = new ValString("s", false);// Common, on account of print using this
 		public static ValString spaceStr = new ValString(" ", false);
 		public static ValString fromStr = new ValString("from", false);
 		public static ValString toStr = new ValString("to", false);
 		public static ValString seqStr = new ValString("seq", false);
 		public static ValString superStr = new ValString("super", false);
 		public static ValString lenStr = new ValString("len", false);
-		
-		static ValString _empty = new ValString("", false);
-		
-		/// <summary>
-		/// Handy accessor for an empty ValString.
-		/// IMPORTANT: do not alter the value of the object returned!
-		/// </summary>
-		public static ValString empty { get { return _empty; } }
+		public static ValString empty = new ValString("", false);
 	}
-
-	// We frequently need to generate a ValString out of a string for fleeting purposes,
-	// like looking up an identifier in a map (which we do ALL THE TIME).  So, here's
-	// a little recycling pool of reusable ValStrings, for this purpose only.
-	class TempValString : ValString {
-		private TempValString next;
-
-		private TempValString(string s) : base(s, false) {
-			this.next = null;
-		}
-
-		private static TempValString _tempPoolHead = null;
-		private static object lockObj = new object();
-		public static TempValString Get(string s) {
-			lock(lockObj) {
-				if (_tempPoolHead == null) {
-					return new TempValString(s);
-				} else {
-					var result = _tempPoolHead;
-					_tempPoolHead = _tempPoolHead.next;
-					result.value = s;
-					return result;
-				}
-			}
-		}
-		public static void Release(TempValString temp) {
-			lock(lockObj) {
-				temp.next = _tempPoolHead;
-				_tempPoolHead = temp;
-			}
-		}
-	}
-	
 }

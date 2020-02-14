@@ -168,13 +168,13 @@ namespace Miniscript
                 throw new RuntimeException("can't assign to " + identifier);
             }
             if (variables == null) variables = ValMap.Create();
-            var identifierStr = TempValString.Get(identifier);
+            var identifierStr = ValString.Create(identifier);
             if (variables.assignOverride == null || !variables.assignOverride(identifierStr, value)) {
                 //variables[identifier] = value;
                 variables.SetElem(identifier, value, false);
                 //variables.SetElem(identifier, value, true);
             }
-            TempValString.Release(identifierStr);
+            identifierStr.Unref();
         }
         
         /// <summary>
