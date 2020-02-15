@@ -41,6 +41,14 @@ namespace Miniscript
         private Value yVal;
         private Value zVal;
         private Value wVal;
+        private Value nameVal;
+		private Value positionVal;
+		private Value rotationVal;
+		private Value forwardVal;
+		private Value rightVal;
+		private Value timeVal;
+		private Value deltaTimeVal;
+		private Value frameCountVal;
         // Whether we need to regenerate our cache
         private bool _isCountDirty = false;
         private bool _isKeysDirty = false;
@@ -147,6 +155,22 @@ namespace Miniscript
             zVal = null;
             wVal?.Unref();
             wVal = null;
+            nameVal?.Unref();
+            nameVal = null;
+            positionVal?.Unref();
+            positionVal = null;
+            rotationVal?.Unref();
+            rotationVal = null;
+            forwardVal?.Unref();
+            forwardVal = null;
+            rightVal?.Unref();
+            rightVal = null;
+            timeVal?.Unref();
+            timeVal = null;
+            deltaTimeVal?.Unref();
+            deltaTimeVal = null;
+            frameCountVal?.Unref();
+            frameCountVal = null;
         }
         protected override void ReturnToPool()
         {
@@ -175,6 +199,14 @@ namespace Miniscript
                     if (yVal != null) numBuiltIn++;
                     if (zVal != null) numBuiltIn++;
                     if (wVal != null) numBuiltIn++;
+                    if (nameVal != null) numBuiltIn++;
+                    if (positionVal != null) numBuiltIn++;
+                    if (rotationVal != null) numBuiltIn++;
+                    if (forwardVal != null) numBuiltIn++;
+                    if (rightVal != null) numBuiltIn++;
+                    if (timeVal != null) numBuiltIn++;
+                    if (deltaTimeVal != null) numBuiltIn++;
+                    if (frameCountVal != null) numBuiltIn++;
 
                     _cachedCount = numBuiltIn + map.Count;
                     _isCountDirty = false;
@@ -199,6 +231,22 @@ namespace Miniscript
                 _allKeys.Add(ValString.zStr);
             if (wVal != null)
                 _allKeys.Add(ValString.wStr);
+            if (nameVal != null)
+                _allKeys.Add(ValString.nameStr);
+            if (positionVal != null)
+                _allKeys.Add(ValString.positionStr);
+            if (rotationVal != null)
+                _allKeys.Add(ValString.rotationStr);
+            if (forwardVal != null)
+                _allKeys.Add(ValString.forwardStr);
+            if (rightVal != null)
+                _allKeys.Add(ValString.rightStr);
+            if (timeVal != null)
+                _allKeys.Add(ValString.timeStr);
+            if (deltaTimeVal != null)
+                _allKeys.Add(ValString.deltaTimeStr);
+            if (frameCountVal != null)
+                _allKeys.Add(ValString.frameCountStr);
             // We can't use the _mapKeys b/c it's
             // not in the same order
             //_allKeys.AddRange(_mapKeys);
@@ -223,6 +271,22 @@ namespace Miniscript
                 _allValues.Add(zVal);
             if (wVal != null)
                 _allValues.Add(wVal);
+            if (nameVal != null)
+                _allValues.Add(nameVal);
+            if (positionVal != null)
+                _allValues.Add(positionVal);
+            if (rotationVal != null)
+                _allValues.Add(rotationVal);
+            if (forwardVal != null)
+                _allValues.Add(forwardVal);
+            if (rightVal != null)
+                _allValues.Add(rightVal);
+            if (timeVal != null)
+                _allValues.Add(timeVal);
+            if (deltaTimeVal != null)
+                _allValues.Add(deltaTimeVal);
+            if (frameCountVal != null)
+                _allValues.Add(frameCountVal);
             foreach (var val in map.Values)
                 _allValues.Add(val);
             _isValuesDirty = false;
@@ -277,55 +341,242 @@ namespace Miniscript
                 case "w":
                     value = wVal;
                     return true;
+                case "name":
+                    value = nameVal;
+                    return true;
+                case "position":
+                    value = positionVal;
+                    return true;
+                case "rotation":
+                    value = rotationVal;
+                    return true;
+                case "forward":
+                    value = forwardVal;
+                    return true;
+                case "right":
+                    value = rightVal;
+                    return true;
+                case "time":
+                    value = timeVal;
+                    return true;
+                case "deltaTime":
+                    value = deltaTimeVal;
+                    return true;
+                case "frameCount":
+                    value = frameCountVal;
+                    return true;
                 default:
                     value = null;
                     return false;
             }
         }
-        private bool TrySetInternalBuiltIn(string identifier, Value value, out Value previousVal)
+        private bool TryGetInternalBuiltIn(Value identifier, out Value value)
         {
-            switch (identifier)
+            ValString str = identifier as ValString;
+            if(str == null)
             {
-                case "self":
-                    previousVal = selfVal;
-                    selfVal?.Unref();
-                    selfVal = value;
-                    return true;
-                case "__isa":
-                    previousVal = isaVal;
-                    isaVal?.Unref();
-                    isaVal = value;
-                    return true;
-                case "__events":
-                    previousVal = eventsVal;
-                    eventsVal?.Unref();
-                    eventsVal = value;
-                    return true;
-                case "x":
-                    previousVal = xVal;
-                    xVal?.Unref();
-                    xVal = value;
-                    return true;
-                case "y":
-                    previousVal = yVal;
-                    yVal?.Unref();
-                    yVal = value;
-                    return true;
-                case "z":
-                    previousVal = zVal;
-                    zVal?.Unref();
-                    zVal = value;
-                    return true;
-                case "w":
-                    previousVal = wVal;
-                    wVal?.Unref();
-                    wVal = value;
-                    return true;
-                default:
-                    previousVal = null;
-                    value = null;
-                    return false;
+                value = null;
+                return false;
             }
+            // Internally, unity turns string switch case into a dictionary
+            // which is fast, but working with the hashes can be sorta slow
+            // so we just use the instance ID on the val string, as int
+            // comparison is very fast
+            int recvID = str.InstanceID;
+            if (recvID == ValString.selfStr.InstanceID)
+            {
+                value = selfVal;
+                return true;
+            }
+            if(recvID == ValString.magicIsA.InstanceID)
+            {
+                value = isaVal;
+                return true;
+            }
+            if(recvID == ValString.eventsStr.InstanceID)
+            {
+                value = eventsVal;
+                return true;
+            }
+            if(recvID == ValString.xStr.InstanceID)
+            {
+                value = xVal;
+                return true;
+            }
+            if(recvID == ValString.yStr.InstanceID)
+            {
+                value = yVal;
+                return true;
+            }
+            if(recvID == ValString.zStr.InstanceID)
+            {
+                value = zVal;
+                return true;
+            }
+            if(recvID == ValString.wStr.InstanceID)
+            {
+                value = wVal;
+                return true;
+            }
+            if(recvID == ValString.nameStr.InstanceID)
+            {
+                value = nameVal;
+                return true;
+            }
+            if(recvID == ValString.positionStr.InstanceID)
+            {
+                value = positionVal;
+                return true;
+            }
+            if(recvID == ValString.rotationStr.InstanceID)
+            {
+                value = rotationVal;
+                return true;
+            }
+            if(recvID == ValString.forwardStr.InstanceID)
+            {
+                value = forwardVal;
+                return true;
+            }
+            if(recvID == ValString.rightStr.InstanceID)
+            {
+                value = rightVal;
+                return true;
+            }
+            if(recvID == ValString.timeStr.InstanceID)
+            {
+                value = timeVal;
+                return true;
+            }
+            if(recvID == ValString.deltaTimeStr.InstanceID)
+            {
+                value = deltaTimeVal;
+                return true;
+            }
+            if(recvID == ValString.frameCountStr.InstanceID)
+            {
+                value = frameCountVal;
+                return true;
+            }
+            value = null;
+            return false;
+        }
+        private bool TrySetInternalBuiltIn(Value identifier, Value value, out Value previousVal)
+        {
+            ValString str = identifier as ValString;
+            if(str == null)
+            {
+                previousVal = null;
+                return false;
+            }
+            int recvID = str.InstanceID;
+            if (recvID == ValString.selfStr.InstanceID)
+            {
+                previousVal = selfVal;
+                selfVal?.Unref();
+                selfVal = value;
+                return true;
+            }
+            if(recvID == ValString.magicIsA.InstanceID)
+            {
+                previousVal = isaVal;
+                isaVal?.Unref();
+                isaVal = value;
+                return true;
+            }
+            if(recvID == ValString.eventsStr.InstanceID)
+            {
+                previousVal = eventsVal;
+                eventsVal?.Unref();
+                eventsVal = value;
+                return true;
+            }
+            if(recvID == ValString.xStr.InstanceID)
+            {
+                previousVal = xVal;
+                xVal?.Unref();
+                xVal = value;
+                return true;
+            }
+            if(recvID == ValString.yStr.InstanceID)
+            {
+                previousVal = yVal;
+                yVal?.Unref();
+                yVal = value;
+                return true;
+            }
+            if(recvID == ValString.zStr.InstanceID)
+            {
+                previousVal = zVal;
+                zVal?.Unref();
+                zVal = value;
+                return true;
+            }
+            if(recvID == ValString.wStr.InstanceID)
+            {
+                previousVal = wVal;
+                wVal?.Unref();
+                wVal = value;
+                return true;
+            }
+            if(recvID == ValString.nameStr.InstanceID)
+            {
+                previousVal = nameVal;
+                nameVal?.Unref();
+                nameVal = value;
+                return true;
+            }
+            if(recvID == ValString.positionStr.InstanceID)
+            {
+                previousVal = positionVal;
+                positionVal?.Unref();
+                positionVal = value;
+                return true;
+            }
+            if(recvID == ValString.rotationStr.InstanceID)
+            {
+                previousVal = rotationVal;
+                rotationVal?.Unref();
+                rotationVal = value;
+                return true;
+            }
+            if(recvID == ValString.forwardStr.InstanceID)
+            {
+                previousVal = forwardVal;
+                forwardVal?.Unref();
+                forwardVal = value;
+                return true;
+            }
+            if(recvID == ValString.rightStr.InstanceID)
+            {
+                previousVal = rightVal;
+                rightVal?.Unref();
+                rightVal = value;
+                return true;
+            }
+            if(recvID == ValString.timeStr.InstanceID)
+            {
+                previousVal = timeVal;
+                timeVal?.Unref();
+                timeVal = value;
+                return true;
+            }
+            if(recvID == ValString.deltaTimeStr.InstanceID)
+            {
+                previousVal = deltaTimeVal;
+                deltaTimeVal?.Unref();
+                deltaTimeVal = value;
+                return true;
+            }
+            if(recvID == ValString.frameCountStr.InstanceID)
+            {
+                previousVal = frameCountVal;
+                frameCountVal?.Unref();
+                frameCountVal = value;
+                return true;
+            }
+            previousVal = null;
+            return false;
         }
 
 		/// <summary>
@@ -356,7 +607,7 @@ namespace Miniscript
                     // simply store a ValNull here, and pull out a ValNull
                     // later but just return a null
                     Value builtInVal = value ?? ValNull.instance;
-                    if (TrySetInternalBuiltIn(indexStr.value, builtInVal, out Value oldVal))
+                    if (TrySetInternalBuiltIn(indexStr, builtInVal, out Value oldVal))
                     {
                         // If we're overwriting a value, keep count/keys
                         if(oldVal != null)
@@ -404,7 +655,7 @@ namespace Miniscript
             Value existing;
             if(indexStr != null)
             {
-                if (TrySetInternalBuiltIn(indexStr.value, null, out existing))
+                if (TrySetInternalBuiltIn(indexStr, null, out existing))
                 {
                     // We return true only if we had an existing value
                     if(existing != null)
@@ -509,8 +760,7 @@ namespace Miniscript
                 key = ValNull.instance;
             else
             {
-                ValString valStr = key as ValString;
-                if (valStr != null && TryGetInternalBuiltIn(valStr.value, out Value existing))
+                if (TryGetInternalBuiltIn(key, out Value existing))
                     return existing != null;
             }
 			return map.ContainsKey(key);
@@ -537,8 +787,7 @@ namespace Miniscript
 		/// <param name="identifier">identifier to look up</param>
 		/// <returns>true if found, false if not</returns>
 		public bool TryGetValue(Value identifier, out Value value) {
-            ValString valStr = identifier as ValString;
-            if (valStr != null && TryGetInternalBuiltIn(valStr.value, out value))
+            if (TryGetInternalBuiltIn(identifier, out value))
             {
                 if (value == null)
                     return false; // Not found
@@ -658,7 +907,7 @@ namespace Miniscript
                 _workingStringBuilder.Append(key.CodeForm(vm, nextRecurLimit));
                 _workingStringBuilder.Append(": ");
                 _workingStringBuilder.Append(val == null ? "null" : val.CodeForm(vm, nextRecurLimit));
-                if(++i != map.Count)
+                if(++i != Count)
                     _workingStringBuilder.Append(", ");
 			}
             _workingStringBuilder.Append("}");

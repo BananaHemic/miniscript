@@ -15,6 +15,10 @@ namespace Miniscript
 		public string value { get; protected set; }
         private bool _hasCachedHash = false;
         private int _cachedHash;
+        // The unique ID for this instance. It is set only once
+        // in constructor, so at two different time the same instance ID
+        // can have different strings, unless pooling is off
+        public readonly int InstanceID;
 
         [ThreadStatic]
         protected static ValuePool<ValString> _valuePool;
@@ -23,6 +27,7 @@ namespace Miniscript
         [ThreadStatic]
         private static StringBuilder _workingSbB;
 
+        private static int _nextInstanceID;
 #if MINISCRIPT_DEBUG
         [ThreadStatic]
         protected static uint _numInstancesAllocated = 0;
@@ -42,14 +47,6 @@ namespace Miniscript
                     return sStr;
                 case "self":
                     return selfStr;
-                case "x":
-                    return xStr;
-                case "y":
-                    return yStr;
-                case "z":
-                    return zStr;
-                case "w":
-                    return wStr;
                 case "to":
                     return toStr;
                 case "from":
@@ -68,6 +65,30 @@ namespace Miniscript
                     return yieldStr;
                 case " ":
                     return spaceStr;
+                case "x":
+                    return xStr;
+                case "y":
+                    return yStr;
+                case "z":
+                    return zStr;
+                case "w":
+                    return wStr;
+                case "name":
+                    return nameStr;
+		        case "position":
+                    return positionStr;
+		        case "rotation":
+                    return rotationStr;
+		        case "forward":
+                    return forwardStr;
+		        case "right":
+                    return rightStr;
+		        case "time":
+                    return timeStr;
+		        case "deltaTime":
+                    return deltaTimeStr;
+		        case "frameCount":
+                    return frameCountStr;
             }
 
             //Console.WriteLine("Alloc str \"" + val + "\" num " + _num);
@@ -95,6 +116,7 @@ namespace Miniscript
         }
 		protected ValString(string value, bool usePool) : base(usePool) {
 			this.value = value ?? empty.value;
+            InstanceID = _nextInstanceID++;
 #if MINISCRIPT_DEBUG
             _id = _num++;
 #endif
@@ -191,6 +213,14 @@ namespace Miniscript
 		public static ValString yStr = new ValString("y", false);
 		public static ValString zStr = new ValString("z", false);
 		public static ValString wStr = new ValString("w", false);
+		public static ValString nameStr = new ValString("name", false);
+		public static ValString positionStr = new ValString("position", false);
+		public static ValString rotationStr = new ValString("rotation", false);
+		public static ValString forwardStr = new ValString("forward", false);
+		public static ValString rightStr = new ValString("right", false);
+		public static ValString timeStr = new ValString("time", false);
+		public static ValString deltaTimeStr = new ValString("deltaTime", false);
+		public static ValString frameCountStr = new ValString("frameCount", false);
 		public static ValString yieldStr = new ValString("yield", false);
 		public static ValString magicIsA = new ValString("__isa", false);
 		public static ValString sStr = new ValString("s", false);// Common, on account of print using this
