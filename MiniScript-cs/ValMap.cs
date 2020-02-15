@@ -41,6 +41,11 @@ namespace Miniscript
         private Value yVal;
         private Value zVal;
         private Value wVal;
+        // Whether we need to regenerate our cache
+        private bool _isCountDirty = false;
+        private bool _isKeysDirty = false;
+        private bool _isValuesDirty = false;
+        private int _cachedCount = 0;
 
 		private ValMap(bool usePool) : base(usePool) {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
@@ -123,6 +128,10 @@ namespace Miniscript
             _mapKeys.Clear();
             _allValues.Clear();
             _allKeys.Clear();
+            _isCountDirty = false;
+            _isKeysDirty = false;
+            _isValuesDirty = false;
+            _cachedCount = 0;
 
             selfVal?.Unref();
             selfVal = null;
@@ -154,20 +163,70 @@ namespace Miniscript
 		/// </summary>
 		public int Count {
 			get {
-                // Count the values that we have stored
-                // as built-in
-                int numBuiltIn = 0;
-                if (selfVal != null) numBuiltIn++;
-                if (isaVal != null) numBuiltIn++;
-                if (eventsVal != null) numBuiltIn++;
-                if (xVal != null) numBuiltIn++;
-                if (yVal != null) numBuiltIn++;
-                if (zVal != null) numBuiltIn++;
-                if (wVal != null) numBuiltIn++;
+                if (_isCountDirty)
+                {
+                    // Count the values that we have stored
+                    // as built-in
+                    int numBuiltIn = 0;
+                    if (selfVal != null) numBuiltIn++;
+                    if (isaVal != null) numBuiltIn++;
+                    if (eventsVal != null) numBuiltIn++;
+                    if (xVal != null) numBuiltIn++;
+                    if (yVal != null) numBuiltIn++;
+                    if (zVal != null) numBuiltIn++;
+                    if (wVal != null) numBuiltIn++;
 
-                return numBuiltIn + map.Count;
+                    _cachedCount = numBuiltIn + map.Count;
+                    _isCountDirty = false;
+                }
+                return _cachedCount;
             }
 		}
+        private void GenerateKeysList()
+        {
+            _allKeys.Clear();
+            if (selfVal != null)
+                _allKeys.Add(ValString.selfStr);
+            if (isaVal != null)
+                _allKeys.Add(ValString.magicIsA);
+            if (eventsVal != null)
+                _allKeys.Add(ValString.eventsStr);
+            if (xVal != null)
+                _allKeys.Add(ValString.xStr);
+            if (yVal != null)
+                _allKeys.Add(ValString.yStr);
+            if (zVal != null)
+                _allKeys.Add(ValString.zStr);
+            if (wVal != null)
+                _allKeys.Add(ValString.wStr);
+            // We can't use the _mapKeys b/c it's
+            // not in the same order
+            //_allKeys.AddRange(_mapKeys);
+            foreach (var key in map.Keys)
+                _allKeys.Add(key);
+            _isKeysDirty = false;
+        }
+        private void GenerateValuesList()
+        {
+            _allValues.Clear();
+            if (selfVal != null)
+                _allValues.Add(selfVal);
+            if (isaVal != null)
+                _allValues.Add(isaVal);
+            if (eventsVal != null)
+                _allValues.Add(eventsVal);
+            if (xVal != null)
+                _allValues.Add(xVal);
+            if (yVal != null)
+                _allValues.Add(yVal);
+            if (zVal != null)
+                _allValues.Add(zVal);
+            if (wVal != null)
+                _allValues.Add(wVal);
+            foreach (var val in map.Values)
+                _allValues.Add(val);
+            _isValuesDirty = false;
+        }
 		
 		/// <summary>
 		/// Return the KeyCollection for this map.
@@ -175,22 +234,8 @@ namespace Miniscript
 		public List<Value> Keys {
             get
             {
-                _allKeys.Clear();
-                if (selfVal != null)
-                    _allKeys.Add(ValString.selfStr);
-                if (isaVal != null)
-                    _allKeys.Add(ValString.magicIsA);
-                if (eventsVal != null)
-                    _allKeys.Add(ValString.eventsStr);
-                if (xVal != null)
-                    _allKeys.Add(ValString.xStr);
-                if (yVal != null)
-                    _allKeys.Add(ValString.yStr);
-                if (zVal != null)
-                    _allKeys.Add(ValString.zStr);
-                if (wVal != null)
-                    _allKeys.Add(ValString.wStr);
-                _allKeys.AddRange(_mapKeys);
+                if (_isKeysDirty)
+                    GenerateKeysList();
                 return _allKeys;
             }
 		}
@@ -201,23 +246,8 @@ namespace Miniscript
 		/// </summary>
 		public List<Value> Values {
 			get {
-                _allValues.Clear();
-                if (selfVal != null)
-                    _allValues.Add(selfVal);
-                if (isaVal != null)
-                    _allValues.Add(isaVal);
-                if (eventsVal != null)
-                    _allValues.Add(eventsVal);
-                if (xVal != null)
-                    _allValues.Add(xVal);
-                if (yVal != null)
-                    _allValues.Add(yVal);
-                if (zVal != null)
-                    _allValues.Add(zVal);
-                if (wVal != null)
-                    _allValues.Add(wVal);
-                foreach (var val in map.Values)
-                    _allValues.Add(val);
+                if (_isValuesDirty)
+                    GenerateValuesList();
                 return _allValues;
             }
 		}
@@ -252,39 +282,47 @@ namespace Miniscript
                     return false;
             }
         }
-        private bool TrySetInternalBuiltIn(string identifier, Value value)
+        private bool TrySetInternalBuiltIn(string identifier, Value value, out Value previousVal)
         {
             switch (identifier)
             {
                 case "self":
+                    previousVal = selfVal;
                     selfVal?.Unref();
                     selfVal = value;
                     return true;
                 case "__isa":
+                    previousVal = isaVal;
                     isaVal?.Unref();
                     isaVal = value;
                     return true;
                 case "__events":
+                    previousVal = eventsVal;
                     eventsVal?.Unref();
                     eventsVal = value;
                     return true;
                 case "x":
+                    previousVal = xVal;
                     xVal?.Unref();
                     xVal = value;
                     return true;
                 case "y":
+                    previousVal = yVal;
                     yVal?.Unref();
                     yVal = value;
                     return true;
                 case "z":
+                    previousVal = zVal;
                     zVal?.Unref();
                     zVal = value;
                     return true;
                 case "w":
+                    previousVal = wVal;
                     wVal?.Unref();
                     wVal = value;
                     return true;
                 default:
+                    previousVal = null;
                     value = null;
                     return false;
             }
@@ -318,8 +356,21 @@ namespace Miniscript
                     // simply store a ValNull here, and pull out a ValNull
                     // later but just return a null
                     Value builtInVal = value ?? ValNull.instance;
-                    if (TrySetInternalBuiltIn(indexStr.value, builtInVal))
+                    if (TrySetInternalBuiltIn(indexStr.value, builtInVal, out Value oldVal))
+                    {
+                        // If we're overwriting a value, keep count/keys
+                        if(oldVal != null)
+                        {
+                            _isValuesDirty = true;
+                        }
+                        else
+                        {
+                            _isCountDirty = true;
+                            _isKeysDirty = true;
+                            _isValuesDirty = true;
+                        }
                         return;
+                    }
                 }
 
                 if(map.TryGetValue(index, out Value existing))
@@ -331,6 +382,16 @@ namespace Miniscript
                     map.Remove(existingKey);
                     if (existingKey != null)
                         existingKey.Unref();
+
+                    // Overwrote value, count didn't change but keys/values did
+                    _isKeysDirty = true;
+                    _isValuesDirty = true;
+                }
+                else
+                {
+                    _isCountDirty = true;
+                    _isKeysDirty = true;
+                    _isValuesDirty = true;
                 }
                 _mapKeys.Add(index);
                 map[index] = value;
@@ -343,13 +404,15 @@ namespace Miniscript
             Value existing;
             if(indexStr != null)
             {
-                // We return true only if we have an existing value
-                if(TryGetInternalBuiltIn(indexStr.value, out existing))
+                if (TrySetInternalBuiltIn(indexStr.value, null, out existing))
                 {
+                    // We return true only if we had an existing value
                     if(existing != null)
                     {
-                        if (TrySetInternalBuiltIn(indexStr.value, null))
-                            return true;
+                        _isCountDirty = true;
+                        _isKeysDirty = true;
+                        _isValuesDirty = true;
+                        return true;
                     }
                     return false;
                 }
@@ -363,6 +426,9 @@ namespace Miniscript
                 if (existingKey != null)
                     existingKey.Unref();
                 map.Remove(keyVal);
+                _isCountDirty = true;
+                _isKeysDirty = true;
+                _isValuesDirty = true;
                 return true;
             }
             return false;
