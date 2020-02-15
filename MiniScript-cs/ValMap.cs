@@ -11,9 +11,7 @@ namespace Miniscript
 	/// ValMap represents a MiniScript map, which under the hood is just a Dictionary
 	/// of Value, Value pairs.
 	/// </summary>
-	public class ValMap : PoolableValue, IEnumerable {
-		private readonly Dictionary<Value, Value> map;
-        private readonly List<Value> _keys = new List<Value>();
+	public class ValMap : PoolableValue {
 
 		// Assignment override function: return true to cancel (override)
 		// the assignment, or false to allow it to happen as normal.
@@ -30,6 +28,19 @@ namespace Miniscript
         private static int _num;
         public int _id;
 #endif
+
+		private readonly Dictionary<Value, Value> map;
+        private readonly List<Value> _mapKeys = new List<Value>();
+        private readonly List<Value> _allKeys = new List<Value>();
+        private readonly List<Value> _allValues = new List<Value>();
+        // Common values in the map, which we keep here for perf
+        private Value selfVal;
+        private Value isaVal;
+        private Value eventsVal;
+        private Value xVal;
+        private Value yVal;
+        private Value zVal;
+        private Value wVal;
 
 		private ValMap(bool usePool) : base(usePool) {
 			this.map = new Dictionary<Value, Value>(RValueEqualityComparer.instance);
@@ -108,8 +119,25 @@ namespace Miniscript
                 kvp.Key?.Unref();
                 kvp.Value?.Unref();
             }
-            _keys.Clear();
             map.Clear();
+            _mapKeys.Clear();
+            _allValues.Clear();
+            _allKeys.Clear();
+
+            selfVal?.Unref();
+            selfVal = null;
+            isaVal?.Unref();
+            isaVal = null;
+            eventsVal?.Unref();
+            eventsVal = null;
+            xVal?.Unref();
+            xVal = null;
+            yVal?.Unref();
+            yVal = null;
+            zVal?.Unref();
+            zVal = null;
+            wVal?.Unref();
+            wVal = null;
         }
         protected override void ReturnToPool()
         {
@@ -121,10 +149,146 @@ namespace Miniscript
             _valuePool.ReturnToPool(this);
         }
 
-        public override bool BoolValue() {
-			// A map is considered true if it is nonempty.
-			return map != null && map.Count > 0;
+		/// <summary>
+		/// Get the number of entries in this map.
+		/// </summary>
+		public int Count {
+			get {
+                // Count the values that we have stored
+                // as built-in
+                int numBuiltIn = 0;
+                if (selfVal != null) numBuiltIn++;
+                if (isaVal != null) numBuiltIn++;
+                if (eventsVal != null) numBuiltIn++;
+                if (xVal != null) numBuiltIn++;
+                if (yVal != null) numBuiltIn++;
+                if (zVal != null) numBuiltIn++;
+                if (wVal != null) numBuiltIn++;
+
+                return numBuiltIn + map.Count;
+            }
 		}
+		
+		/// <summary>
+		/// Return the KeyCollection for this map.
+		/// </summary>
+		public List<Value> Keys {
+            get
+            {
+                _allKeys.Clear();
+                if (selfVal != null)
+                    _allKeys.Add(ValString.selfStr);
+                if (isaVal != null)
+                    _allKeys.Add(ValString.magicIsA);
+                if (eventsVal != null)
+                    _allKeys.Add(ValString.eventsStr);
+                if (xVal != null)
+                    _allKeys.Add(ValString.xStr);
+                if (yVal != null)
+                    _allKeys.Add(ValString.yStr);
+                if (zVal != null)
+                    _allKeys.Add(ValString.zStr);
+                if (wVal != null)
+                    _allKeys.Add(ValString.wStr);
+                _allKeys.AddRange(_mapKeys);
+                return _allKeys;
+            }
+		}
+
+		/// <summary>
+		/// Return a list of Values for this map.
+        /// NB: this list stays owned by the ValMap
+		/// </summary>
+		public List<Value> Values {
+			get {
+                _allValues.Clear();
+                if (selfVal != null)
+                    _allValues.Add(selfVal);
+                if (isaVal != null)
+                    _allValues.Add(isaVal);
+                if (eventsVal != null)
+                    _allValues.Add(eventsVal);
+                if (xVal != null)
+                    _allValues.Add(xVal);
+                if (yVal != null)
+                    _allValues.Add(yVal);
+                if (zVal != null)
+                    _allValues.Add(zVal);
+                if (wVal != null)
+                    _allValues.Add(wVal);
+                foreach (var val in map.Values)
+                    _allValues.Add(val);
+                return _allValues;
+            }
+		}
+		
+        private bool TryGetInternalBuiltIn(string identifier, out Value value)
+        {
+            switch (identifier)
+            {
+                case "self":
+                    value = selfVal;
+                    return true;
+                case "__isa":
+                    value = isaVal;
+                    return true;
+                case "__events":
+                    value = eventsVal;
+                    return true;
+                case "x":
+                    value = xVal;
+                    return true;
+                case "y":
+                    value = yVal;
+                    return true;
+                case "z":
+                    value = zVal;
+                    return true;
+                case "w":
+                    value = wVal;
+                    return true;
+                default:
+                    value = null;
+                    return false;
+            }
+        }
+        private bool TrySetInternalBuiltIn(string identifier, Value value)
+        {
+            switch (identifier)
+            {
+                case "self":
+                    selfVal?.Unref();
+                    selfVal = value;
+                    return true;
+                case "__isa":
+                    isaVal?.Unref();
+                    isaVal = value;
+                    return true;
+                case "__events":
+                    eventsVal?.Unref();
+                    eventsVal = value;
+                    return true;
+                case "x":
+                    xVal?.Unref();
+                    xVal = value;
+                    return true;
+                case "y":
+                    yVal?.Unref();
+                    yVal = value;
+                    return true;
+                case "z":
+                    zVal?.Unref();
+                    zVal = value;
+                    return true;
+                case "w":
+                    wVal?.Unref();
+                    wVal = value;
+                    return true;
+                default:
+                    value = null;
+                    return false;
+            }
+        }
 
 		/// <summary>
 		/// Set the value associated with the given key (index).  This is where
@@ -142,33 +306,60 @@ namespace Miniscript
             if (takeIndexRef)
                 index?.Ref();
 			if (index == null) index = ValNull.instance;
+
 			if (assignOverride == null || !assignOverride(index, value)) {
 
-                //TODO there may be issues where two indexes are different instances
-                // but are Equal(). Then we should be careful about unreffing the current
-                // instance. Not sure if that normally happens though
+                // Check against common entries first, for perf
+                ValString indexStr = index as ValString;
+                if(indexStr != null)
+                {
+                    // We want to replicate the behavior of a map, so to
+                    // preserve the way that you can set a key to null, we
+                    // simply store a ValNull here, and pull out a ValNull
+                    // later but just return a null
+                    Value builtInVal = value ?? ValNull.instance;
+                    if (TrySetInternalBuiltIn(indexStr.value, builtInVal))
+                        return;
+                }
+
                 if(map.TryGetValue(index, out Value existing))
                 {
                     // Unref the value that's currently there
                     existing.Unref();
                     // Try to get the key that's there and unref it
-                    Value existingKey = RemoveBySwap(_keys, index);
+                    Value existingKey = RemoveBySwap(_mapKeys, index);
                     map.Remove(existingKey);
                     if (existingKey != null)
                         existingKey.Unref();
                 }
-                _keys.Add(index);
+                _mapKeys.Add(index);
                 map[index] = value;
 			}
 		}
         public bool Remove(Value keyVal)
         {
+            // Check against common entries first, for perf
+            ValString indexStr = keyVal as ValString;
+            Value existing;
+            if(indexStr != null)
+            {
+                // We return true only if we have an existing value
+                if(TryGetInternalBuiltIn(indexStr.value, out existing))
+                {
+                    if(existing != null)
+                    {
+                        if (TrySetInternalBuiltIn(indexStr.value, null))
+                            return true;
+                    }
+                    return false;
+                }
+            }
             // Pull the current key/value so that we can unref it
-            if(map.TryGetValue(keyVal, out Value existing))
+            if(map.TryGetValue(keyVal, out existing))
             {
                 existing.Unref();
                 // Try to get the key that's there and unref it
-                Value existingKey = RemoveBySwap(_keys, keyVal);
+                Value existingKey = RemoveBySwap(_mapKeys, keyVal);
                 if (existingKey != null)
                     existingKey.Unref();
                 map.Remove(keyVal);
@@ -182,16 +373,16 @@ namespace Miniscript
             keyStr.Unref();
 		}
         // O(n)
-        private Value RemoveBySwap(List<Value> list, Value item)
+        private Value RemoveBySwap(List<Value> list, Value newKey)
         {
-            for(int i = 0; i < _keys.Count; i++)
+            for(int i = 0; i < _mapKeys.Count; i++)
             {
-                Value val = _keys[i];
-                if (val.Equality(item) == 1.0)
+                Value key = _mapKeys[i];
+                if (key.Equality(newKey) == 1.0)
                 {
-                    _keys[i] = _keys[_keys.Count - 1];
-                    _keys.RemoveAt(_keys.Count - 1);
-                    return val;
+                    _mapKeys[i] = _mapKeys[_mapKeys.Count - 1];
+                    _mapKeys.RemoveAt(_mapKeys.Count - 1);
+                    return key;
                 }
             }
             return null;
@@ -204,11 +395,12 @@ namespace Miniscript
         /// <param name="identifier">string key to get/set</param>
         /// <returns>value associated with that key</returns>
         public Value this [string identifier] {
+            //TODO I think we might unecessarily be walking up the _isa chain here
 			get { 
 				var idVal = ValString.Create(identifier);
-				Value result = Lookup(idVal);
+                Value result = Lookup(idVal);
                 idVal.Unref();
-				return result;
+                return result;
 			}
 			set {
                 SetElem(identifier, value, true);
@@ -217,7 +409,9 @@ namespace Miniscript
 
 		public Value this [Value identifier] {
 			get {
-                return map[identifier];
+                if(TryGetValue(identifier, out Value ret))
+                    return ret;
+                return null;
 			}
 			set {
                 SetElem(identifier, value, true);
@@ -230,19 +424,12 @@ namespace Miniscript
 		/// <param name="identifier">string key to check for</param>
 		/// <returns>true if the map contains that key; false otherwise</returns>
 		public bool ContainsKey(string identifier) {
+            if(TryGetInternalBuiltIn(identifier, out Value existing))
+                return existing != null;
 			var idVal = ValString.Create(identifier);
 			bool result = map.ContainsKey(idVal);
             idVal.Unref();
 			return result;
-		}
-
-		/// <summary>
-		/// Convenience method to check whether the map contains a given value
-		/// </summary>
-		/// <param name="identifier">value to check for</param>
-		/// <returns>true if the map contains that value; false otherwise</returns>
-		public bool ContainsValue(Value val) {
-            return map.ContainsValue(val);
 		}
 		
 		/// <summary>
@@ -252,29 +439,15 @@ namespace Miniscript
 		/// <param name="key">key to check for</param>
 		/// <returns>true if the map contains that key; false otherwise</returns>
 		public bool ContainsKey(Value key) {
-			if (key == null) key = ValNull.instance;
+			if (key == null)
+                key = ValNull.instance;
+            else
+            {
+                ValString valStr = key as ValString;
+                if (valStr != null && TryGetInternalBuiltIn(valStr.value, out Value existing))
+                    return existing != null;
+            }
 			return map.ContainsKey(key);
-		}
-		
-		/// <summary>
-		/// Get the number of entries in this map.
-		/// </summary>
-		public int Count {
-			get { return map.Count; }
-		}
-		
-		/// <summary>
-		/// Return the KeyCollection for this map.
-		/// </summary>
-		public Dictionary<Value, Value>.KeyCollection Keys {
-			get { return map.Keys; }
-		}
-
-		/// <summary>
-		/// Return the ValueCollection for this map.
-		/// </summary>
-		public Dictionary<Value, Value>.ValueCollection Values {
-			get { return map.Values; }
 		}
 		
 		/// <summary>
@@ -286,7 +459,7 @@ namespace Miniscript
 		/// <returns>true if found, false if not</returns>
 		public bool TryGetValue(string identifier, out Value value) {
 			var idVal = ValString.Create(identifier);
-			bool result = map.TryGetValue(idVal, out value);
+			bool result = TryGetValue(idVal, out value);
             idVal.Unref();
 			return result;
 		}
@@ -298,6 +471,15 @@ namespace Miniscript
 		/// <param name="identifier">identifier to look up</param>
 		/// <returns>true if found, false if not</returns>
 		public bool TryGetValue(Value identifier, out Value value) {
+            ValString valStr = identifier as ValString;
+            if (valStr != null && TryGetInternalBuiltIn(valStr.value, out value))
+            {
+                if (value == null)
+                    return false; // Not found
+                if (value is ValNull)// 
+                    value = null;
+                return true;
+            }
 			bool result = map.TryGetValue(identifier, out value);
 			return result;
 		}
@@ -313,9 +495,9 @@ namespace Miniscript
 			Value result = null;
 			ValMap obj = this;
 			while (obj != null) {
-				if (obj.map.TryGetValue(key, out result)) return result;
+				if (obj.TryGetValue(key, out result)) return result;
 				Value parent;
-				if (!obj.map.TryGetValue(ValString.magicIsA, out parent)) break;
+				if (!obj.TryGetValue(ValString.magicIsA, out parent)) break;
 				obj = parent as ValMap;
 			}
 			return null;
@@ -333,12 +515,12 @@ namespace Miniscript
 			Value result = null;
 			ValMap obj = this;
 			while (obj != null) {
-				if (obj.map.TryGetValue(key, out result)) {
+				if (obj.TryGetValue(key, out result)) {
 					valueFoundIn = obj;
 					return result;
 				}
 				Value parent;
-				if (!obj.map.TryGetValue(ValString.magicIsA, out parent)) break;
+				if (!obj.TryGetValue(ValString.magicIsA, out parent)) break;
 				obj = parent as ValMap;
 			}
 			valueFoundIn = null;
@@ -346,18 +528,20 @@ namespace Miniscript
 		}
 		
 		public override Value FullEval(Context context) {
-			// Evaluate each of our elements, and if any of those is
-			// a variable or temp, then resolve those now.
-			foreach (Value k in map.Keys.ToArray()) {	// TODO: something more efficient here.
-				Value key = k;		// stupid C#!
-				Value value = map[key];
+            // Evaluate each of our elements, and if any of those is
+            // a variable or temp, then resolve those now.
+            var keys = Keys;
+            var vals = Values;
+			for(int i = 0; i < keys.Count; i++) {
+                Value key = keys[i];
+                Value value = vals[i];
 				if (key is ValTemp || key is ValVar) {
-					map.Remove(key);
+					Remove(key);
 					key = key.Val(context, true);
-					map[key] = value;
+                    SetElem(key, value);
 				}
 				if (value is ValTemp || value is ValVar) {
-					map[key] = value.Val(context, true);
+                    SetElem(key, value.Val(context, true));
 				}
 			}
 			return this;
@@ -369,11 +553,15 @@ namespace Miniscript
 			// ensure that each time that code executes, we get a new, distinct
 			// mutable object, rather than the same object multiple times.
 			var result = ValMap.Create();
-			foreach (Value k in map.Keys) {
-				Value key = k;		// stupid C#!
-				Value value = map[key];
-				if (key is ValTemp || key is ValVar) key = key.Val(context, false);
-				if (value is ValTemp || value is ValVar) value = value.Val(context, false);
+            var keys = Keys;
+            var values = Values;
+			for(int i = 0; i < keys.Count; i++) {
+				Value key = keys[i];
+                Value value = values[i];
+				if (key is ValTemp || key is ValVar)
+                    key = key.Val(context, false);
+				if (value is ValTemp || value is ValVar)
+                    value = value.Val(context, false);
                 result.SetElem(key, value, true, true);
 			}
 			return result;
@@ -385,19 +573,25 @@ namespace Miniscript
 				string shortName = vm.FindShortName(this);
 				if (shortName != null) return shortName;
 			}
+            //TODO this will break with recursion!
             if (_workingStringBuilder == null)
                 _workingStringBuilder = new StringBuilder();
             else
                 _workingStringBuilder.Clear();
             _workingStringBuilder.Append("{");
 			int i = 0;
-			foreach (KeyValuePair<Value, Value> kv in map) {
+            var keys = Keys;
+            var values = Values;
+            for(int j = 0; j < keys.Count; j++)
+            {
+                Value key = keys[j];
+                Value val = values[j];
 				int nextRecurLimit = recursionLimit - 1;
-				if (kv.Key == ValString.magicIsA)
+				if (key == ValString.magicIsA)
                     nextRecurLimit = 1;
-                _workingStringBuilder.Append(kv.Key.CodeForm(vm, nextRecurLimit));
+                _workingStringBuilder.Append(key.CodeForm(vm, nextRecurLimit));
                 _workingStringBuilder.Append(": ");
-                _workingStringBuilder.Append(kv.Value == null ? "null" : kv.Value.CodeForm(vm, nextRecurLimit));
+                _workingStringBuilder.Append(val == null ? "null" : val.CodeForm(vm, nextRecurLimit));
                 if(++i != map.Count)
                     _workingStringBuilder.Append(", ");
 			}
@@ -413,50 +607,61 @@ namespace Miniscript
 			// If the given type is the magic 'map' type, then we're definitely
 			// one of those.  Otherwise, we have to walk the __isa chain.
 			if (type == vm.mapType) return true;
-			Value p = null;
-			map.TryGetValue(ValString.magicIsA, out p);
+			Value p = isaVal;
 			while (p != null) {
 				if (p == type) return true;
 				if (!(p is ValMap)) return false;
-				((ValMap)p).map.TryGetValue(ValString.magicIsA, out p);
+				((ValMap)p).TryGetValue(ValString.magicIsA, out p);
 			}
 			return false;
 		}
 
+        public override bool BoolValue() {
+			// A map is considered true if it is nonempty.
+			return Count > 0;
+		}
+
 		public override int Hash(int recursionDepth=16) {
-			//return map.GetHashCode();
-			int result = map.Count.GetHashCode();
+			int result = Count.GetHashCode();
 			if (recursionDepth < 0) return result;  // (important to recurse an odd number of times, due to bit flipping)
-			foreach (KeyValuePair<Value, Value> kv in map) {
-				result ^= kv.Key.Hash(recursionDepth-1);
-				if (kv.Value != null) result ^= kv.Value.Hash(recursionDepth-1);
+            var keys = Keys;
+            var vals = Values;
+			for(int i = 0; i < keys.Count; i++) {
+				result ^= keys[i].Hash(recursionDepth-1);
+                Value val = vals[i];
+				if (val != null)
+                    result ^= val.Hash(recursionDepth-1);
 			}
 			return result;
 		}
 
 		public override double Equality(Value rhs, int recursionDepth=16) {
 			if (!(rhs is ValMap)) return 0;
-			Dictionary<Value, Value> rhm = ((ValMap)rhs).map;
-			if (rhm == map) return 1;  // (same map)
-			int count = map.Count;
-			if (count != rhm.Count) return 0;
+            ValMap rhm = rhs as ValMap;
+			if (rhm == this) return 1;  // (same map)
+			if (Count != rhm.Count) return 0;
 			if (recursionDepth < 1) return 0.5;		// in too deep
 			double result = 1;
-			foreach (KeyValuePair<Value, Value> kv in map) {
-				if (!rhm.ContainsKey(kv.Key)) return 0;
-				var rhvalue = rhm[kv.Key];
-				if (kv.Value == null) {
-					if (rhvalue != null) return 0;
-					continue;
-				}
-				result *= kv.Value.Equality(rhvalue, recursionDepth-1);
+            var ourKeys = Keys;
+            var ourVals = Values;
+            var theirKeys = rhm.Keys;
+            var theirVals = rhm.Values;
+
+            for(int i = 0; i < ourKeys.Count; i++) {
+
+                if (ourKeys[i] != theirKeys[i])
+                    return 0;
+                Value ourVal = ourVals[i];
+                Value theirVal = theirVals[i];
+                if (ourVal == null && theirVal != null)
+                    return 0;
+                if (ourVal == null && theirVal == null)
+                    continue;
+				result *= ourVal.Equality(theirVal, recursionDepth-1);
 				if (result <= 0) break;
 			}
 			return result;
 		}
-
-		public override bool CanSetElem() { return true; }
-
 
 		/// <summary>
 		/// Get the indicated key/value pair as another map containing "key" and "value".
@@ -465,32 +670,21 @@ namespace Miniscript
 		/// <param name="index">0-based index of key/value pair to get.</param>
 		/// <returns>new map containing "key" and "value" with the requested key/value pair</returns>
 		public ValMap GetKeyValuePair(int index) {
-			Dictionary<Value, Value>.KeyCollection keys = map.Keys;
+            var keys = Keys;
 			if (index < 0 || index >= keys.Count) {
 				throw new IndexException("index " + index + " out of range for map");
 			}
-			Value key = keys.ElementAt<Value>(index);   // (TODO: consider more efficient methods here)
+            var val = Values[index];
+            var key = keys[index];
 			var result = ValMap.Create();
-            if (key != null)
-                key.Ref();
-            Value val = map[key];
-            if (val != null)
-                val.Ref();
-            result.map[keyStr] = (key is ValNull) ? null : key;
-            result.map[valStr] = val;
+            result.SetElem(keyStr, (key is ValNull) ? null : key, true, true);
+            result.SetElem(valStr, val, true, true);
 			return result;
 		}
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return map.GetEnumerator();
-        }
-        public Dictionary<Value, Value>.Enumerator GetEnumerator()
-        {
-            return map.GetEnumerator();
-        }
+
+		public override bool CanSetElem() { return true; }
 
         static ValString keyStr = ValString.Create("key", false);
 		static ValString valStr = ValString.Create("value", false);
-
 	}
 }

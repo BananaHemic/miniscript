@@ -487,16 +487,18 @@ namespace Miniscript
                     return ValNumber.Truth(1.0 - ((ValMap)opA).Equality(opB));
                 } else if (op == Op.APlusB) {
                     // map combination
-                    //Dictionary<Value, Value> map = ((ValMap)opA).map;
                     Check.Type(opB, typeof(ValMap), "map combination");
-                    //Dictionary<Value, Value> map2 = ((ValMap)opB).map;
                     ValMap result = ValMap.Create();
                     ValMap mapA = opA as ValMap;
-                    foreach (KeyValuePair<Value, Value> kv in mapA)
-                        result[kv.Key] = context.ValueInContext(kv.Value);
+                    var aKeys = mapA.Keys;
+                    var aVals = mapA.Values;
+                    for(int i = 0; i < aKeys.Count;i++)
+                        result[aKeys[i]] = context.ValueInContext(aVals[i]);
                     ValMap mapB = opB as ValMap;
-                    foreach (KeyValuePair<Value, Value> kv in mapB)
-                        result[kv.Key] = context.ValueInContext(kv.Value);
+                    var bKeys = mapB.Keys;
+                    var bVals = mapB.Values;
+                    for(int i = 0; i < bKeys.Count;i++)
+                        result[bKeys[i]] = context.ValueInContext(bVals[i]);
                     return result;
                 } else if (op == Op.NotA) {
                     return ValNumber.Truth(!opA.BoolValue());

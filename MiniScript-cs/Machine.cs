@@ -192,9 +192,11 @@ namespace Miniscript
         
         public string FindShortName(Value val) {
             if (globalContext == null || globalContext.variables == null) return null;
-            foreach (var kv in globalContext.variables) {
-                if (kv.Value == val && kv.Key != val) return kv.Key.ToString(this);
-            }
+            var globalVars = globalContext.variables.Values;
+            var globalKeys = globalContext.variables.Keys;
+            for(int i = 0; i < globalVars.Count; i++)
+                if (globalVars[i] == val && globalKeys[i] != val) return globalKeys[i].ToString(this);
+
             string result = null;
             Intrinsic.shortNames.TryGetValue(val, out result);
             return result;

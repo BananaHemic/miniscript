@@ -25,9 +25,6 @@ namespace Miniscript
         public Intrinsic.Result partialResult;	// work-in-progress of our current intrinsic
         public int implicitResultCounter;	// how many times we have stored an implicit result
         readonly List<TempEntry> temps = new List<TempEntry>();			// values of temporaries; temps[0] is always return value
-        // Common values in the map, which we keep here for perf
-        public Value selfVal;
-        public Value eventsVal;
 
         [ThreadStatic]
         private static Stack<Context> _pool;
@@ -98,14 +95,6 @@ namespace Miniscript
                 if(variables != null)
                     variables.Unref();
                 variables = null;
-
-                // Clear the common cached values
-                if (selfVal != null)
-                    selfVal.Unref();
-                selfVal = null;
-                if (eventsVal != null)
-                    eventsVal.Unref();
-                eventsVal = null;
             }
         }
 
@@ -115,8 +104,6 @@ namespace Miniscript
             code = null;
             lineNum = 0;
             variables = null;
-            selfVal = null;
-            eventsVal = null;
             outerVars = null;
             if(args != null)
                 args.Clear();
@@ -169,28 +156,6 @@ namespace Miniscript
             if (tmp != null && tmp.value == 20)
             { }
 
-            // Check the identifier against common cached values
-            if(identifier != null)
-            {
-                ValString identStr = identifier as ValString;
-                if(identStr != null)
-                {
-                    switch (identStr.value)
-                    {
-                        case "self":
-                            if (selfVal != null)
-                                selfVal.Unref();
-                            selfVal = value;
-                            return;
-                        case "__events":
-                            if (eventsVal != null)
-                                eventsVal.Unref();
-                            eventsVal = value;
-                            return;
-                    }
-                }
-            }
-
             if (variables == null) variables = ValMap.Create();
             if (variables.assignOverride == null || !variables.assignOverride(identifier, value)) {
                 variables.SetElem(identifier, value, false);
@@ -200,23 +165,6 @@ namespace Miniscript
         {
             if (identifier == "globals" || identifier == "locals") {
                 throw new RuntimeException("can't assign to " + identifier);
-            }
-            // Check the identifier against common cached values
-            if(identifier != null)
-            {
-                switch (identifier)
-                {
-                    case "self":
-                        if (selfVal != null)
-                            selfVal.Unref();
-                        selfVal = value;
-                        return;
-                    case "__events":
-                        if (eventsVal != null)
-                            eventsVal.Unref();
-                        eventsVal = value;
-                        return;
-                }
             }
 
             if (variables == null) variables = ValMap.Create();
@@ -302,22 +250,6 @@ namespace Miniscript
                 return root.variables;
             }
 
-            // Check the identifier against common cached values
-            if(identifier != null)
-            {
-                switch (identifier)
-                {
-                    case "self":
-                        if(selfVal != null)
-                            return selfVal;
-                        break;
-                    case "__events":
-                        if(eventsVal != null)
-                            return eventsVal;
-                        break;
-                }
-            }
-            
             // check for a local variable
             Value result;
             if (variables != null && variables.TryGetValue(identifier, out result)) {

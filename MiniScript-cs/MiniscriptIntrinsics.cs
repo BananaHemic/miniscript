@@ -641,7 +641,7 @@ namespace Miniscript {
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
 					if (map.Count < 1) return Intrinsic.Result.Null;
-					Value result = map.Keys.First();
+                    Value result = map.Keys[0];
                     result.Ref();
 					map.Remove(result);
 					return new Intrinsic.Result(result);
@@ -665,7 +665,7 @@ namespace Miniscript {
 				} else if (self is ValMap) {
 					ValMap map = (ValMap)self;
 					if (map.Count < 1) return Intrinsic.Result.Null;
-					Value result = map.Keys.First();
+                    Value result = map.Keys[0];
                     result.Ref();
 					map.Remove(result);
 					return new Intrinsic.Result(result);
@@ -738,10 +738,8 @@ namespace Miniscript {
 				if (self is ValMap) {
 					ValMap selfMap = (ValMap)self;
 					if (k == null) k = ValNull.instance;
-					if (selfMap.ContainsKey(k)) {
-						selfMap.Remove(k);
+					if (selfMap.Remove(k))
 						return Intrinsic.Result.True;
-					}
 					return Intrinsic.Result.False;
 				} else if (self is ValList) {
 					if (k == null) throw new RuntimeException("argument to 'remove' must not be null");
@@ -1034,9 +1032,9 @@ namespace Miniscript {
 				} else if (self is ValMap) {
                     //Dictionary<Value, Value> map = ((ValMap)self).map;
                     ValMap valMap = self as ValMap;
-					// Fisher-Yates again, but this time, what we're swapping
-					// is the values associated with the keys, not the keys themselves.
-					List<Value> keys = System.Linq.Enumerable.ToList(valMap.Keys);
+                    // Fisher-Yates again, but this time, what we're swapping
+                    // is the values associated with the keys, not the keys themselves.
+                    List<Value> keys = valMap.Keys;
 					for (int i=keys.Count-1; i >= 1; i--) {
 						int j = random.Next(i+1);
 						Value keyi = keys[i];
