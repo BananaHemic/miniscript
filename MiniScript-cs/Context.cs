@@ -151,11 +151,6 @@ namespace Miniscript
         }
 
         public void SetVar(Value identifier, Value value) {
-
-            ValNumber tmp = value as ValNumber;
-            if (tmp != null && tmp.value == 20)
-            { }
-
             if (variables == null) variables = ValMap.Create();
             if (variables.assignOverride == null || !variables.assignOverride(identifier, value)) {
                 variables.SetElem(identifier, value, false);

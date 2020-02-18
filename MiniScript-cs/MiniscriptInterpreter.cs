@@ -304,6 +304,18 @@ namespace Miniscript {
                 vm.globalContext.SetVar(varName, value);
             }
 		}
+		/// <summary>
+		/// Set a value in the global namespace of this interpreter.
+		/// </summary>
+		/// <param name="varName">name of global variable to set</param>
+		/// <param name="value">value to set</param>
+		public void SetGlobalValue(ValString varName, Value value) {
+            if (vm != null)
+            {
+                value.Ref();
+                vm.globalContext.SetVar(varName, value);
+            }
+		}
 		
 		/// <summary>
 		/// Report a MiniScript error to the user.  The default implementation 
