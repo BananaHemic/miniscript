@@ -78,6 +78,10 @@ namespace Miniscript {
 		
 		TextOutputMethod _standardOutput;
 		string source;
+        /// <summary>
+        /// The parser that we created. If the parser was provided to us in our constructor, then we can simply
+        /// leave this as null
+        /// </summary>
 		Parser parser;
 		
 		/// <summary>
@@ -309,7 +313,7 @@ namespace Miniscript {
 		/// </summary>
 		/// <param name="varName">name of global variable to set</param>
 		/// <param name="value">value to set</param>
-		public void SetGlobalValue(ValString varName, Value value) {
+		public void SetGlobalValue(Value varName, Value value) {
             if (vm != null)
             {
                 value.Ref();
