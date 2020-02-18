@@ -24,12 +24,22 @@ class MainClass {
 	static void Test(List<string> sourceLines, int sourceLineNum,
 					 List<string> expectedOutput, int outputLineNum) {
 		if (expectedOutput == null) expectedOutput = new List<string>();
-//		Console.WriteLine("TEST (LINE {0}):", sourceLineNum);
-//		Console.WriteLine(string.Join("\n", sourceLines));
-//		Console.WriteLine("EXPECTING (LINE {0}):", outputLineNum);
-//		Console.WriteLine(string.Join("\n", expectedOutput));
+        //		Console.WriteLine("TEST (LINE {0}):", sourceLineNum);
+        //		Console.WriteLine(string.Join("\n", sourceLines));
+        //		Console.WriteLine("EXPECTING (LINE {0}):", outputLineNum);
+        //		Console.WriteLine(string.Join("\n", expectedOutput));
 
-		Interpreter miniscript = new Interpreter(sourceLines);
+        Interpreter miniscript = new Interpreter(sourceLines);
+
+        // Uncomment to test with separate parsing / running
+        //Parser parser = new Parser();
+        //try {
+        //    parser.Parse(string.Join("\n", sourceLines.ToArray()));
+        //} catch (Miniscript.CompilerException mse) {
+        //    Console.WriteLine("Error parsing " + mse);
+        //    return;
+        //}
+        //Interpreter miniscript = new Interpreter(parser);
 
         // Get the current number of PoolableVars in use across the system
 #if MINISCRIPT_DEBUG

@@ -90,6 +90,19 @@ namespace Miniscript {
 			this.standardOutput = standardOutput;
 			this.errorOutput = errorOutput;
 		}
+		/// <summary>
+		/// Constructor taking some parsed code, and the output delegates.
+		/// </summary>
+		public Interpreter(Parser parser, TextOutputMethod standardOutput=null, TextOutputMethod errorOutput=null) {
+            // This parser should already be loaded with code, so we should be able to just use it as-is
+            vm = parser.CreateVM(standardOutput);
+            vm.interpreter = new WeakReference(this);
+
+			if (standardOutput == null) standardOutput = Console.WriteLine;
+			if (errorOutput == null) errorOutput = Console.WriteLine;
+			this.standardOutput = standardOutput;
+			this.errorOutput = errorOutput;
+		}
 		
 		/// <summary>
 		/// Constructor taking source code in the form of a list of strings.
