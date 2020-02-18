@@ -627,7 +627,8 @@ namespace Miniscript
                 if(map.TryGetValue(index, out Value existing))
                 {
                     // Unref the value that's currently there
-                    existing.Unref();
+                    if(existing != null)
+                        existing.Unref(); // There can be null entries in this list
                     // Try to get the key that's there and unref it
                     Value existingKey = RemoveBySwap(_mapKeys, index);
                     map.Remove(existingKey);

@@ -635,7 +635,8 @@ namespace Miniscript {
                     ValList list = self as ValList;
 					if (list.Count < 1) return Intrinsic.Result.Null;
 					Value result = list[list.Count-1];
-                    result.Ref();
+                    if(result != null)
+                        result.Ref();
 					list.RemoveAt(list.Count-1);
 					return new Intrinsic.Result(result);
 				} else if (self is ValMap) {
@@ -659,7 +660,8 @@ namespace Miniscript {
                     ValList list = self as ValList;
 					if (list.Count < 1) return Intrinsic.Result.Null;
 					Value result = list[0];
-                    result.Ref();
+                    if(result != null)
+                        result.Ref(); // list can hold null references
 					list.RemoveAt(0);
 					return new Intrinsic.Result(result);
 				} else if (self is ValMap) {
