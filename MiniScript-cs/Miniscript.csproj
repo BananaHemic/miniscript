@@ -39,6 +39,7 @@
     <Compile Include="Function.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="Machine.cs" />
+    <Compile Include="MiniCompat.cs" />
     <Compile Include="PoolableValue.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -27,7 +27,7 @@ namespace Miniscript
             if (!_poolable)
                 return;
             if (_refCount == 0)
-                Console.WriteLine("Reffed out of the pool!");
+                MiniCompat.LogError("Reffed out of the pool!");
             _refCount++;
         }
         public int GetRefCount()
@@ -44,7 +44,7 @@ namespace Miniscript
                 return;
             else if (_refCount < 0)
             {
-                Console.WriteLine("Extra unref! For " + GetType().ToString());
+                MiniCompat.LogError("Extra unref! For " + GetType().ToString());
                 return;
             }
             ResetState();
@@ -76,7 +76,7 @@ namespace Miniscript
                 //Console.WriteLine("from pool");
                 T val = _pool.Pop();
                 if(val._refCount != 0)
-                    Console.WriteLine("Error, pulled value with too high a ref, " + val._refCount + " type " + val.GetType().ToString());
+                    MiniCompat.LogError("Error, pulled value with too high a ref, " + val._refCount + " type " + val.GetType().ToString());
                 return val;
             }
             public void ReturnToPool(T poolableValue)

@@ -102,8 +102,8 @@ namespace Miniscript {
             vm = parser.CreateVM(standardOutput);
             vm.interpreter = new WeakReference(this);
 
-			if (standardOutput == null) standardOutput = Console.WriteLine;
-			if (errorOutput == null) errorOutput = Console.WriteLine;
+            if (standardOutput == null) standardOutput = MiniCompat.Log;
+            if (errorOutput == null) errorOutput = MiniCompat.LogError;
 			this.standardOutput = standardOutput;
 			this.errorOutput = errorOutput;
 		}

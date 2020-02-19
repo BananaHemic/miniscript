@@ -23,7 +23,7 @@ namespace Miniscript {
 
 		public static void Assert(bool condition) {
 			if (!condition) {
-				Console.WriteLine("Internal assertion failed.");
+				MiniCompat.LogError("Internal assertion failed.");
 			}
 		}
 	}
