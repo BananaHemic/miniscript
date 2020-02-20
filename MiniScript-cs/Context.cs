@@ -272,6 +272,40 @@ namespace Miniscript
             // No luck there either?  Undefined identifier.
             throw new UndefinedIdentifierException(identifier);
         }
+        public Value GetVar(Value identifier) {
+            // check for a local variable
+            Value result;
+            if (variables != null && variables.TryGetValue(identifier, out result)) {
+                return result;
+            }
+
+            // check for a module variable
+            if (outerVars != null && outerVars.TryGetValue(identifier, out result)) {
+                return result;
+            }
+
+            // OK, we don't have a local or module variable with that name.
+            // Check the global scope (if that's not us already).
+            if (parent != null) {
+                Context globals = root;
+                if (globals.variables != null && globals.variables.ContainsKey(identifier)) {
+                    return globals.variables[identifier];
+                }
+            }
+
+            // Finally, check intrinsics.
+            ValString identStrVal = identifier as ValString;
+            string identStr = identStrVal == null ? string.Empty : identStrVal.value;
+            if(!string.IsNullOrEmpty(identStr))
+            {
+                Intrinsic intrinsic = Intrinsic.GetByName(identStr);
+                if (intrinsic != null)
+                    return intrinsic.GetFunc();
+            }
+
+            // No luck there either?  Undefined identifier.
+            throw new UndefinedIdentifierException(identStr);
+        }
 
         public void StoreValue(Value lhs, Value value, bool unrefWhenDone=false) {
             if (lhs is ValTemp) {

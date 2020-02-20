@@ -295,6 +295,21 @@ namespace Miniscript {
 				return null;
 			}
 		}
+		/// <summary>
+		/// Get a value from the global namespace of this interpreter.
+		/// </summary>
+		/// <param name="varName">name of global variable to get</param>
+		/// <returns>Value of the named variable, or null if not found</returns>
+		public Value GetGlobalValue(Value val) {
+			if (vm == null) return null;
+			Context c = vm.globalContext;
+			if (c == null) return null;
+			try {
+				return c.GetVar(val);
+			} catch (UndefinedIdentifierException) {
+				return null;
+			}
+		}
 		
 		/// <summary>
 		/// Set a value in the global namespace of this interpreter.
