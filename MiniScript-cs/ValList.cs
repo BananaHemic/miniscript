@@ -13,8 +13,14 @@ namespace Miniscript
 	public class ValList : PoolableValue {
 		public static long maxSize = 0xFFFFFF;      // about 16 MB
 
-        public int Count { get { return values.Count; } }
-        public readonly List<Value> values;
+        public int Count { get { return values.Count - StartIndex; } }
+        /// <summary>
+        /// Pull is a very common operation, so to speed it up we
+        /// simply keep a buffer in the front, instead of doing a RemoveAt
+        /// each time
+        /// </summary>
+        public int StartIndex { get; private set; }
+        private readonly List<Value> values;
         [ThreadStatic]
         private static ValuePool<ValList> _valuePool;
         [ThreadStatic]
@@ -76,10 +82,11 @@ namespace Miniscript
 #endif
         protected override void ResetState()
         {
-            for(int i = 0; i < values.Count;i++)
+            for(int i = StartIndex; i < values.Count;i++)
                 values[i]?.Unref();
             //Console.WriteLine("ValList #" + _id + " back in pool");
             values.Clear();
+            StartIndex = 0;
         }
         public void Add(Value value, bool takeRef=true)
         {
@@ -96,9 +103,10 @@ namespace Miniscript
             for (int i = 0; i < recvValues.Count; i++)
                 recvValues[i]?.Ref();
             // Unref the values we have
-            for (int i = 0; i < values.Count; i++)
+            for (int i = StartIndex; i < values.Count; i++)
                 values[i]?.Unref();
             values.Clear();
+            StartIndex = 0;
             // Copy them over
             for (int i = 0; i < recvValues.Count; i++)
                 values.Add(recvValues[i]);
@@ -121,7 +129,7 @@ namespace Miniscript
         {
             ValString str = value as ValString;
             value?.Ref();
-            values.Insert(idx, value);
+            values.Insert(StartIndex + idx, value);
         }
         public override Value FullEval(Context context) {
 			// Evaluate each of our list elements, and if any of those is
@@ -129,7 +137,7 @@ namespace Miniscript
 			// CAUTION: do not mutate our original list!  We may need
 			// it in its original form on future iterations.
 			ValList result = null;
-			for (var i = 0; i < values.Count; i++) {
+			for (var i = StartIndex; i < values.Count; i++) {
 				var copied = false;
 				if (values[i] is ValTemp || values[i] is ValVar) {
 					Value newVal = values[i].Val(context, false);
@@ -157,7 +165,7 @@ namespace Miniscript
 			// ensure that each time that code executes, we get a new, distinct
 			// mutable object, rather than the same object multiple times.
 			var result = ValList.Create(values.Count);
-			for (var i = 0; i < values.Count; i++) {
+			for (var i = StartIndex; i < values.Count; i++) {
                 // Sometimes Val is a ValTemp that returns a value that should be reffed
                 // so we Val without Refing, then Ref during Add
 				result.Add(values[i] == null ? null : values[i].Val(context, false), true);
@@ -176,7 +184,7 @@ namespace Miniscript
             else
                 _workingStringBuilder.Clear();
             _workingStringBuilder.Append("[");
-			for (var i = 0; i < values.Count; i++) {
+			for (var i = StartIndex; i < values.Count; i++) {
                 Value val = values[i];
                 _workingStringBuilder.Append(val == null ? "null" : val.CodeForm(vm, recursionLimit - 1));
                 if (i != values.Count - 1)
@@ -192,7 +200,7 @@ namespace Miniscript
 
 		public override bool BoolValue() {
 			// A list is considered true if it is nonempty.
-			return values != null && values.Count > 0;
+			return values != null && Count > 0;
 		}
 
 		public override bool IsA(Value type, Machine vm) {
@@ -201,9 +209,9 @@ namespace Miniscript
 
 		public override int Hash(int recursionDepth=16) {
 			//return values.GetHashCode();
-			int result = values.Count.GetHashCode();
+			int result = Count.GetHashCode();
 			if (recursionDepth < 1) return result;
-			for (var i = 0; i < values.Count; i++) {
+			for (var i = StartIndex; i < values.Count; i++) {
 				result ^= values[i].Hash(recursionDepth-1);
 			}
 			return result;
@@ -211,14 +219,16 @@ namespace Miniscript
 
 		public override double Equality(Value rhs, int recursionDepth=16) {
 			if (!(rhs is ValList)) return 0;
-			List<Value> rhl = ((ValList)rhs).values;
+            ValList rList = rhs as ValList;
+			List<Value> rhl = rList.values;
+            int rStart = rList.StartIndex;
 			if (rhl == values) return 1;  // (same list)
-			int count = values.Count;
+			int count = Count;
 			if (count != rhl.Count) return 0;
 			if (recursionDepth < 1) return 0.5;		// in too deep
 			double result = 1;
-			for (var i = 0; i < count; i++) {
-				result *= values[i].Equality(rhl[i], recursionDepth-1);
+			for (var i = 0; i < Count; i++) {
+				result *= values[StartIndex + i].Equality(rhl[rStart + i], recursionDepth-1);
 				if (result <= 0) break;
 			}
 			return result;
@@ -231,10 +241,11 @@ namespace Miniscript
 		}
 		public void SetElem(Value index, Value value, bool takeValueRef) {
 			var i = index.IntValue();
-			if (i < 0) i += values.Count;
-			if (i < 0 || i >= values.Count) {
+			if (i < 0) i += Count;
+			if (i < 0 || i >= Count) {
 				throw new IndexException("Index Error (list index " + index + " out of range)");
 			}
+            i += StartIndex;
             ValString str = value as ValString;
             // Unref existing
             values[i]?.Unref();
@@ -245,22 +256,64 @@ namespace Miniscript
 		}
         public void RemoveAt(int i)
         {
-            values[i]?.Unref();
-            values.RemoveAt(i);
+            values[i + StartIndex]?.Unref();
+            // If this is the first element,
+            // then just move StartIndex, instead of
+            // doing an expensive RemoveAt
+            if (i == 0)
+            {
+                values[i + StartIndex] = null;
+                StartIndex++;
+            }
+            else
+                values.RemoveAt(StartIndex + i);
         }
         public Value GetElem(Value index) {
 			var i = index.IntValue();
-			if (i < 0) i += values.Count;
-			if (i < 0 || i >= values.Count) {
+			if (i < 0) i += Count;
+			if (i < 0 || i >= Count) {
 				throw new IndexException("Index Error (list index " + index + " out of range)");
-
 			}
+            i += StartIndex;
 			return values[i];
 		}
+        public int IndexOf(Value val, int after=0)
+        {
+            if(val == null)
+            {
+                for(int i = StartIndex + after; i < values.Count; i++)
+                {
+                    Value v = values[i];
+                    if (v == null)
+                        return i;
+                }
+            }
+            else
+            {
+                for(int i = StartIndex + after; i < values.Count; i++)
+                {
+                    Value v = values[i];
+                    if (v != null && v.Equality(val) == 1)
+                        return i;
+                }
+            }
+            return -1;
+        }
+        public void Sort()
+        {
+            if (StartIndex > 0)
+            {
+                values.RemoveRange(0, StartIndex);
+                StartIndex = 0;
+            }
+            // Sort the list in place
+            values.Sort(ValueSorter.instance);
+        }
         public Value this[int i]
         {
-            get { return values[i]; }
+            get { return values[i + StartIndex]; }
             set {
+                i += StartIndex;
                 values[i]?.Unref();
                 value?.Ref();
                 values[i] = value;

@@ -371,8 +371,8 @@ namespace Miniscript {
 				Value self = context.GetVar("self");
 				Value index = context.GetVar("index");
 				if (self is ValList) {
-					if (!(index is ValNumber)) return Intrinsic.Result.False;	// #3
-					List<Value> list = ((ValList)self).values;
+					if (!(index is ValNumber)) return Intrinsic.Result.False;   // #3
+                    ValList list = ((ValList)self);
 					int i = index.IntValue();
 					return new Intrinsic.Result(ValNumber.Truth(i >= -list.Count && i < list.Count));
 				} else if (self is ValString) {
@@ -412,7 +412,7 @@ namespace Miniscript {
 					}
 					return new Intrinsic.Result(indexes);
 				} else if (self is ValList) {
-					List<Value> list = ((ValList)self).values;
+                    ValList list = ((ValList)self);
                     ValList indexes = ValList.Create(list.Count);
 					for (int i = 0; i < list.Count; i++) {
 						indexes.Add(TAC.Num(i), false);
@@ -433,16 +433,15 @@ namespace Miniscript {
 				Value value = context.GetVar("value");
 				Value after = context.GetVar("after");
 				if (self is ValList) {
-					List<Value> list = ((ValList)self).values;
+                    ValList list = ((ValList)self);
 					int idx;
-					if (after == null) idx = list.FindIndex(x => 
-						x == null ? value == null : x.Equality(value) == 1);
-					else {
+                    if (after == null)
+                        idx = list.IndexOf(value);
+                    else {
 						int afterIdx = after.IntValue();
 						if (afterIdx < -1) afterIdx += list.Count;
 						if (afterIdx < -1 || afterIdx >= list.Count-1) return Intrinsic.Result.Null;
-						idx = list.FindIndex(afterIdx + 1, x => 
-							x == null ? value == null : x.Equality(value) == 1);
+                        idx = list.IndexOf(value, afterIdx + 1);
 					}
 					if (idx >= 0) return new Intrinsic.Result(idx);
 				} else if (self is ValString) {
@@ -524,12 +523,11 @@ namespace Miniscript {
                     _workingStringBuilder = new StringBuilder();
                 else
                     _workingStringBuilder.Clear();
-				//List<string> list = new List<string>(src.Count);
-				for (int i=0; i<src.Count; i++) {
-                    if (src.values[i] == null)
+				for (int i = 0; i < src.Count; i++) {
+                    if (src[i] == null)
                         _workingStringBuilder.Append("null");
                     else
-                        _workingStringBuilder.Append(src.values[i].ToString());
+                        _workingStringBuilder.Append(src[i].ToString());
                     if (i != src.Count - 1)
                         _workingStringBuilder.Append(delim);
 				}
@@ -814,7 +812,7 @@ namespace Miniscript {
 					ValList selfList = (ValList)self;
 					int idx = -1;
 					while (true) {
-						idx = selfList.values.FindIndex(idx+1, x => x.Equality(oldval) == 1);
+                        idx = selfList.IndexOf(oldval, idx + 1);
 						if (idx < 0) break;
 						selfList[idx] = newval;
 						count++;
@@ -928,9 +926,8 @@ namespace Miniscript {
 				
 				Value byKey = context.GetVar("byKey");
 				if (byKey == null) {
-					// Simple case: sort the values as themselves
-					List<Value> sortedValues = list.values.OrderBy((arg) => arg, ValueSorter.instance).ToList();
-                    list.SetToList(sortedValues);
+                    // Simple case: sort the values as themselves
+                    list.Sort();
 				} else {
 					// Harder case: sort by a key.
 					int count = list.Count;
@@ -1022,10 +1019,10 @@ namespace Miniscript {
 				Value self = context.GetVar("self");
 				if (random == null) random = new Random();
 				if (self is ValList) {
-					List<Value> list = ((ValList)self).values;
+					ValList list = ((ValList)self);
 					// We'll do a Fisher-Yates shuffle, i.e., swap each element
 					// with a randomly selected one.
-					for (int i=list.Count-1; i >= 1; i--) {
+					for (int i = list.Count-1; i >= 1; i--) {
 						int j = random.Next(i+1);
 						Value temp = list[j];
 						list[j] = list[i];
@@ -1058,10 +1055,9 @@ namespace Miniscript {
 				Value val = context.GetVar("self");
 				double sum = 0;
 				if (val is ValList) {
-					List<Value> list = ((ValList)val).values;
-					foreach (Value v in list) {
-						sum += v.DoubleValue();
-					}
+					ValList list = ((ValList)val);
+                    for(int i = 0; i < list.Count;i++)
+						sum += list[i].DoubleValue();
 				} else if (val is ValMap) {
                     //Dictionary<Value, Value> map = ((ValMap)val).map;
                     ValMap valMap = val as ValMap;

@@ -418,7 +418,7 @@ namespace Miniscript
                     if (op == Op.ANotEqualB) return ValNumber.one;						
                 }
             } else if (opA is ValList) {
-                List<Value> list = ((ValList)opA).values;
+                ValList list = ((ValList)opA);
                 if (op == Op.ElemBofA || op == Op.ElemBofIterA) {
                     // list indexing
                     int idx = opB.IntValue();
@@ -437,11 +437,13 @@ namespace Miniscript
                 } else if (op == Op.APlusB) {
                     // list concatenation
                     Check.Type(opB, typeof(ValList), "list concatenation");
-                    List<Value> list2 = ((ValList)opB).values;
+                    ValList list2 = ((ValList)opB);
                     if (list.Count + list2.Count > ValList.maxSize) throw new LimitExceededException("list too large");
                     ValList result = ValList.Create(list.Count + list2.Count);
-                    foreach (Value v in list) result.Add(context.ValueInContext(v));
-                    foreach (Value v in list2) result.Add(context.ValueInContext(v));
+                    for(int i = 0; i < list.Count; i++)
+                        result.Add(context.ValueInContext(list[i]));
+                    for(int i = 0; i < list2.Count; i++)
+                        result.Add(context.ValueInContext(list2[i]));
                     return result;
                 } else if (op == Op.ATimesB || op == Op.ADividedByB) {
                     // list replication (or division)
