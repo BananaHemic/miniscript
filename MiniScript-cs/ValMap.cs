@@ -37,6 +37,8 @@ namespace Miniscript
         private Value selfVal;
         private Value isaVal;
         private Value eventsVal;
+        private Value eventValsVal;
+        private Value isAtEndVal;
         private Value xVal;
         private Value yVal;
         private Value zVal;
@@ -147,6 +149,10 @@ namespace Miniscript
             isaVal = null;
             eventsVal?.Unref();
             eventsVal = null;
+            eventValsVal?.Unref();
+            eventValsVal = null;
+            isAtEndVal?.Unref();
+            isAtEndVal = null;
             xVal?.Unref();
             xVal = null;
             yVal?.Unref();
@@ -195,6 +201,8 @@ namespace Miniscript
                     if (selfVal != null) numBuiltIn++;
                     if (isaVal != null) numBuiltIn++;
                     if (eventsVal != null) numBuiltIn++;
+                    if (eventValsVal != null) numBuiltIn++;
+                    if (isAtEndVal != null) numBuiltIn++;
                     if (xVal != null) numBuiltIn++;
                     if (yVal != null) numBuiltIn++;
                     if (zVal != null) numBuiltIn++;
@@ -223,6 +231,10 @@ namespace Miniscript
                 _allKeys.Add(ValString.magicIsA);
             if (eventsVal != null)
                 _allKeys.Add(ValString.eventsStr);
+            if (eventValsVal != null)
+                _allKeys.Add(ValString.eventValsStr);
+            if (isAtEndVal != null)
+                _allKeys.Add(ValString.isAtEndStr);
             if (xVal != null)
                 _allKeys.Add(ValString.xStr);
             if (yVal != null)
@@ -263,6 +275,10 @@ namespace Miniscript
                 _allValues.Add(isaVal);
             if (eventsVal != null)
                 _allValues.Add(eventsVal);
+            if (eventValsVal != null)
+                _allValues.Add(eventValsVal);
+            if (isAtEndVal != null)
+                _allValues.Add(isAtEndVal);
             if (xVal != null)
                 _allValues.Add(xVal);
             if (yVal != null)
@@ -329,6 +345,12 @@ namespace Miniscript
                 case "__events":
                     value = eventsVal;
                     return true;
+                case "__eventVals":
+                    value = eventValsVal;
+                    return true;
+                case "__isAtEnd":
+                    value = isAtEndVal;
+                    return true;
                 case "x":
                     value = xVal;
                     return true;
@@ -378,10 +400,18 @@ namespace Miniscript
                 value = null;
                 return false;
             }
+            // If the ValString wasn't made by ValString as a built-in, we
+            // can exit early
+            if (!str.IsBuiltIn)
+            {
+                value = null;
+                return false;
+            }
             // Internally, unity turns string switch case into a dictionary
             // which is fast, but working with the hashes can be sorta slow
             // so we just use the instance ID on the val string, as int
             // comparison is very fast
+            //TODO this could be a static BST or a hash map!
             int recvID = str.InstanceID;
             if (recvID == ValString.selfStr.InstanceID)
             {
@@ -396,6 +426,16 @@ namespace Miniscript
             if(recvID == ValString.eventsStr.InstanceID)
             {
                 value = eventsVal;
+                return true;
+            }
+            if(recvID == ValString.eventValsStr.InstanceID)
+            {
+                value = eventValsVal;
+                return true;
+            }
+            if(recvID == ValString.isAtEndStr.InstanceID)
+            {
+                value = isAtEndVal;
                 return true;
             }
             if(recvID == ValString.xStr.InstanceID)
@@ -469,6 +509,13 @@ namespace Miniscript
                 previousVal = null;
                 return false;
             }
+            // If the ValString wasn't made by ValString as a built-in, we
+            // can exit early
+            if (!str.IsBuiltIn)
+            {
+                previousVal = null;
+                return false;
+            }
             int recvID = str.InstanceID;
             if (recvID == ValString.selfStr.InstanceID)
             {
@@ -489,6 +536,20 @@ namespace Miniscript
                 previousVal = eventsVal;
                 eventsVal?.Unref();
                 eventsVal = value;
+                return true;
+            }
+            if(recvID == ValString.eventValsStr.InstanceID)
+            {
+                previousVal = eventValsVal;
+                eventValsVal?.Unref();
+                eventValsVal = value;
+                return true;
+            }
+            if(recvID == ValString.isAtEndStr.InstanceID)
+            {
+                previousVal = isAtEndVal;
+                isAtEndVal?.Unref();
+                isAtEndVal = value;
                 return true;
             }
             if(recvID == ValString.xStr.InstanceID)

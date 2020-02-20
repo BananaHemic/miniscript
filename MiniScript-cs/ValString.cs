@@ -19,6 +19,8 @@ namespace Miniscript
         // in constructor, so at two different time the same instance ID
         // can have different strings, unless pooling is off
         public readonly int InstanceID;
+        // If this instance is a built-in value
+        public readonly bool IsBuiltIn = false;
 
         [ThreadStatic]
         protected static ValuePool<ValString> _valuePool;
@@ -61,6 +63,10 @@ namespace Miniscript
                     return lenStr;
                 case "__events":
                     return eventsStr;
+                case "__eventVals":
+                    return eventValsStr;
+                case "__isAtEnd":
+                    return isAtEndStr;
                 case "yield":
                     return yieldStr;
                 case " ":
@@ -120,6 +126,9 @@ namespace Miniscript
 #if MINISCRIPT_DEBUG
             _id = _num++;
 #endif
+		}
+		private ValString(string value, bool usePool, bool isBuiltIn) : this(value, usePool) {
+            IsBuiltIn = isBuiltIn;
 		}
 #if MINISCRIPT_DEBUG
         public override void Ref()
@@ -207,29 +216,31 @@ namespace Miniscript
 		}
 
 		// Magic identifier for the is-a entry in the class system:
-		public static ValString selfStr = new ValString("self", false);
-		public static ValString eventsStr = new ValString("__events", false);
-		public static ValString xStr = new ValString("x", false);
-		public static ValString yStr = new ValString("y", false);
-		public static ValString zStr = new ValString("z", false);
-		public static ValString wStr = new ValString("w", false);
-		public static ValString nameStr = new ValString("name", false);
-		public static ValString positionStr = new ValString("position", false);
-		public static ValString rotationStr = new ValString("rotation", false);
-		public static ValString forwardStr = new ValString("forward", false);
-		public static ValString rightStr = new ValString("right", false);
-		public static ValString timeStr = new ValString("time", false);
-		public static ValString deltaTimeStr = new ValString("deltaTime", false);
-		public static ValString frameCountStr = new ValString("frameCount", false);
-		public static ValString yieldStr = new ValString("yield", false);
-		public static ValString magicIsA = new ValString("__isa", false);
-		public static ValString sStr = new ValString("s", false);// Common, on account of print using this
-		public static ValString spaceStr = new ValString(" ", false);
-		public static ValString fromStr = new ValString("from", false);
-		public static ValString toStr = new ValString("to", false);
-		public static ValString seqStr = new ValString("seq", false);
-		public static ValString superStr = new ValString("super", false);
-		public static ValString lenStr = new ValString("len", false);
-		public static ValString empty = new ValString("", false);
+		public static ValString selfStr = new ValString("self", false, true);
+		public static ValString eventsStr = new ValString("__events", false, true);
+		public static ValString eventValsStr = new ValString("__eventVals", false, true);
+		public static ValString isAtEndStr = new ValString("__isAtEnd", false, true);
+		public static ValString xStr = new ValString("x", false, true);
+		public static ValString yStr = new ValString("y", false, true);
+		public static ValString zStr = new ValString("z", false, true);
+		public static ValString wStr = new ValString("w", false, true);
+		public static ValString nameStr = new ValString("name", false, true);
+		public static ValString positionStr = new ValString("position", false, true);
+		public static ValString rotationStr = new ValString("rotation", false, true);
+		public static ValString forwardStr = new ValString("forward", false, true);
+		public static ValString rightStr = new ValString("right", false, true);
+		public static ValString timeStr = new ValString("time", false, true);
+		public static ValString deltaTimeStr = new ValString("deltaTime", false, true);
+		public static ValString frameCountStr = new ValString("frameCount", false, true);
+		public static ValString yieldStr = new ValString("yield", false, true);
+		public static ValString magicIsA = new ValString("__isa", false, true);
+		public static ValString sStr = new ValString("s", false, true);// Common, on account of print using this
+		public static ValString spaceStr = new ValString(" ", false, true);
+		public static ValString fromStr = new ValString("from", false, true);
+		public static ValString toStr = new ValString("to", false, true);
+		public static ValString seqStr = new ValString("seq", false, true);
+		public static ValString superStr = new ValString("super", false, true);
+		public static ValString lenStr = new ValString("len", false, true);
+		public static ValString empty = new ValString("", false, true);
 	}
 }
