@@ -30,7 +30,7 @@ namespace Miniscript
             AisaB,
             AAndB,
             AOrB,
-            BindContextOfA,
+            BindAssignA,
             CopyA,
             NotA,
             GotoA,
@@ -144,8 +144,8 @@ namespace Miniscript
             case Op.AisaB:
                 text = string.Format("{0} := {1} isa {2}", lhs, rhsA, rhsB);
                 break;
-            case Op.BindContextOfA:
-                text = string.Format("{0}.outerVars = {1}", rhsA, rhsB);
+            case Op.BindAssignA:
+                text = string.Format("{0} := {1} {0}.outerVars=", rhsA, rhsB);
                 break;
             case Op.CopyA:
                 text = string.Format("{0} := copy of {1}", lhs, rhsA);
@@ -517,14 +517,15 @@ namespace Miniscript
             } else {
                 // opA is something else... perhaps null
                 switch (op) {
-                case Op.BindContextOfA:
-                    {
-                        if (context.variables == null) context.variables = ValMap.Create();
-                        ValFunction valFunc = (ValFunction)opA;
-                        valFunc.outerVars = context.variables;
-                        return null;
-                    }
-                case Op.NotA:
+                    case Op.BindAssignA:
+                        {
+                            if (context.variables == null) context.variables = ValMap.Create();
+                            ValFunction valFunc = (ValFunction)opA;
+                            return valFunc.BindAndCopy(context.variables);
+                            //valFunc.outerVars = context.variables;
+                            //return null;
+                        }
+                    case Op.NotA:
                     return opA != null && opA.BoolValue() ? ValNumber.zero : ValNumber.one;
                 }
             }

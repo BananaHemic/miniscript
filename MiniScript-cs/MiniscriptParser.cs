@@ -614,8 +614,21 @@ namespace Miniscript {
 					return;
 				}
 			}
-			// In any other case, do an assignment statement to our lhs.
-			output.Add(new Line(lhs, Line.Op.AssignA, rhs));
+
+            // If the last line was us creating and assigning a function, then we don't add a second assign
+            // op, we instead just update that line with the proper LHS
+            if (rhs is ValFunction && output.code.Count > 0)
+            {
+                Line line = output.code[output.code.Count - 1];
+                if (line.op == Line.Op.BindAssignA)
+                {
+                    line.lhs = lhs;
+                    return;
+                }
+            }
+
+            // In any other case, do an assignment statement to our lhs.
+            output.Add(new Line(lhs, Line.Op.AssignA, rhs));
 		}
 
 		Value ParseExpr(Lexer tokens, bool asLval=false, bool statementStart=false) {
@@ -666,7 +679,7 @@ namespace Miniscript {
 			// Create a function object attached to the new parse state code.
 			func.code = pendingState.code;
 			var valFunc = new ValFunction(func);
-			output.Add(new Line(null, Line.Op.BindContextOfA, valFunc));
+			output.Add(new Line(null, Line.Op.BindAssignA, valFunc));
 			return valFunc;
 		}
 

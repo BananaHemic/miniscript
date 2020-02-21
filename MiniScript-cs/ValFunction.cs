@@ -11,13 +11,19 @@ namespace Miniscript
 	/// </summary>
 	public class ValFunction : Value {
 		public Function function;
-		public ValMap outerVars;	// local variables where the function was defined (usually, the module)
+		public readonly ValMap outerVars;	// local variables where the function was defined (usually, the module)
         private readonly bool _usePool;
 
 		public ValFunction(Function function, bool usePool = true) {
 			this.function = function;
             _usePool = usePool;
 		}
+
+        public ValFunction(Function function, ValMap outerVars)
+        {
+            this.function = function;
+            this.outerVars = outerVars;
+        }
 
         public void Dispose()
         {
@@ -51,5 +57,10 @@ namespace Miniscript
 			var other = (ValFunction)rhs;
 			return function == other.function ? 1 : 0;
 		}
-	}
+
+        public ValFunction BindAndCopy(ValMap contextVariables)
+        {
+            return new ValFunction(function, contextVariables);
+        }
+    }
 }
