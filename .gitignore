@@ -1,3 +1,5 @@
+ # Developer script to make syncing code faster
+CopyToCollab.bat
 */bin/
 */.vs/
 */obj/
