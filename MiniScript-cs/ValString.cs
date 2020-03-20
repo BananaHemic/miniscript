@@ -85,6 +85,10 @@ namespace Miniscript
                     return positionStr;
 		        case "rotation":
                     return rotationStr;
+		        case "velocity":
+                    return velocityStr;
+		        case "angularVelocity":
+                    return angularVelocityStr;
 		        case "forward":
                     return forwardStr;
 		        case "right":
@@ -214,6 +218,7 @@ namespace Miniscript
 			}
 			return ValString.Create(value.Substring(i, 1));
 		}
+
         public override int GetBaseMiniscriptType()
         {
             return MiniscriptTypeInts.ValStringTypeInt;
@@ -231,6 +236,8 @@ namespace Miniscript
 		public static ValString nameStr = new ValString("name", false, true);
 		public static ValString positionStr = new ValString("position", false, true);
 		public static ValString rotationStr = new ValString("rotation", false, true);
+		public static ValString velocityStr = new ValString("velocity", false, true);
+		public static ValString angularVelocityStr = new ValString("angularVelocity", false, true);
 		public static ValString forwardStr = new ValString("forward", false, true);
 		public static ValString rightStr = new ValString("right", false, true);
 		public static ValString timeStr = new ValString("time", false, true);

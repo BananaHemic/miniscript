@@ -46,6 +46,8 @@ namespace Miniscript
         private Value nameVal;
 		private Value positionVal;
 		private Value rotationVal;
+		private Value velocityVal;
+		private Value angularVelocityVal;
 		private Value forwardVal;
 		private Value rightVal;
 		private Value timeVal;
@@ -167,6 +169,10 @@ namespace Miniscript
             positionVal = null;
             rotationVal?.Unref();
             rotationVal = null;
+            velocityVal?.Unref();
+            velocityVal = null;
+            angularVelocityVal?.Unref();
+            angularVelocityVal = null;
             forwardVal?.Unref();
             forwardVal = null;
             rightVal?.Unref();
@@ -210,6 +216,8 @@ namespace Miniscript
                     if (nameVal != null) numBuiltIn++;
                     if (positionVal != null) numBuiltIn++;
                     if (rotationVal != null) numBuiltIn++;
+                    if (velocityVal != null) numBuiltIn++;
+                    if (angularVelocityVal != null) numBuiltIn++;
                     if (forwardVal != null) numBuiltIn++;
                     if (rightVal != null) numBuiltIn++;
                     if (timeVal != null) numBuiltIn++;
@@ -249,6 +257,10 @@ namespace Miniscript
                 _allKeys.Add(ValString.positionStr);
             if (rotationVal != null)
                 _allKeys.Add(ValString.rotationStr);
+            if (velocityVal != null)
+                _allKeys.Add(ValString.velocityStr);
+            if (angularVelocityVal != null)
+                _allKeys.Add(ValString.angularVelocityStr);
             if (forwardVal != null)
                 _allKeys.Add(ValString.forwardStr);
             if (rightVal != null)
@@ -293,6 +305,10 @@ namespace Miniscript
                 _allValues.Add(positionVal);
             if (rotationVal != null)
                 _allValues.Add(rotationVal);
+            if (velocityVal != null)
+                _allValues.Add(velocityVal);
+            if (angularVelocityVal != null)
+                _allValues.Add(angularVelocityVal);
             if (forwardVal != null)
                 _allValues.Add(forwardVal);
             if (rightVal != null)
@@ -371,6 +387,12 @@ namespace Miniscript
                     return true;
                 case "rotation":
                     value = rotationVal;
+                    return true;
+                case "velocity":
+                    value = velocityVal;
+                    return true;
+                case "angularVelocity":
+                    value = angularVelocityVal;
                     return true;
                 case "forward":
                     value = forwardVal;
@@ -471,6 +493,16 @@ namespace Miniscript
             if(recvID == ValString.rotationStr.InstanceID)
             {
                 value = rotationVal;
+                return true;
+            }
+            if(recvID == ValString.velocityStr.InstanceID)
+            {
+                value = velocityVal;
+                return true;
+            }
+            if(recvID == ValString.angularVelocityStr.InstanceID)
+            {
+                value = angularVelocityVal;
                 return true;
             }
             if(recvID == ValString.forwardStr.InstanceID)
@@ -599,6 +631,20 @@ namespace Miniscript
                 previousVal = rotationVal;
                 rotationVal?.Unref();
                 rotationVal = value;
+                return true;
+            }
+            if(recvID == ValString.velocityStr.InstanceID)
+            {
+                previousVal = velocityVal;
+                velocityVal?.Unref();
+                velocityVal = value;
+                return true;
+            }
+            if(recvID == ValString.angularVelocityStr.InstanceID)
+            {
+                previousVal = angularVelocityVal;
+                angularVelocityVal?.Unref();
+                angularVelocityVal = value;
                 return true;
             }
             if(recvID == ValString.forwardStr.InstanceID)
