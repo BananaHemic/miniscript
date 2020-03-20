@@ -499,11 +499,79 @@ namespace Miniscript
                     ValMap mapB = opB as ValMap;
                     var bKeys = mapB.Keys;
                     var bVals = mapB.Values;
-                    for(int i = 0; i < bKeys.Count;i++)
-                        result[bKeys[i]] = context.ValueInContext(bVals[i]);
+                    for(int i = 0; i < bKeys.Count; i++)
+                    {
+                        Value bVal = context.ValueInContext(bVals[i]);
+                        var key = bKeys[i];
+                        if(!result.TryGetValue(key, out Value existingA))
+                            result[key] = bVal;
+                        else
+                        {
+                            // Try to add the actual elements
+                            ValNumber numB = bVal as ValNumber;
+                            if(numB != null)
+                            {
+                                ValNumber numA = existingA as ValNumber;
+                                if (numA != null)
+                                    result[key] = ValNumber.Create(numA.value + numB.value);
+                                else
+                                    result[key] = bVal;
+                            }
+                            //TODO other types
+                        }
+                    }
+                    return result;
+                } else if (op == Op.AMinusB) {
+                    ValMap result = ValMap.Create();
+                    ValMap mapA = opA as ValMap;
+                    var aKeys = mapA.Keys;
+                    var aVals = mapA.Values;
+                    for(int i = 0; i < aKeys.Count;i++)
+                        result[aKeys[i]] = context.ValueInContext(aVals[i]);
+                    ValMap mapB = opB as ValMap;
+                    var bKeys = mapB.Keys;
+                    var bVals = mapB.Values;
+                    for(int i = 0; i < bKeys.Count; i++)
+                    {
+                        Value bVal = context.ValueInContext(bVals[i]);
+                        var key = bKeys[i];
+                        if(!result.TryGetValue(key, out Value existingA))
+                            result[key] = bVal;
+                        else
+                        {
+                            // Try to add the actual elements
+                            ValNumber numB = bVal as ValNumber;
+                            if(numB != null)
+                            {
+                                ValNumber numA = existingA as ValNumber;
+                                if (numA != null)
+                                    result[key] = ValNumber.Create(numA.value + numB.value);
+                                else
+                                    result[key] = bVal;
+                            }
+                            //TODO other types
+                        }
+                    }
                     return result;
                 } else if (op == Op.NotA) {
                     return ValNumber.Truth(!opA.BoolValue());
+                } else if(op == Op.ATimesB)
+                {
+                    ValMap mapA = opA as ValMap;
+                    ValNumber numB = opB as ValNumber;
+                    if(numB != null)
+                    {
+                        var keysA = mapA.Keys;
+                        var valsA = mapA.Values;
+                        ValMap result = ValMap.Create();
+                        for(int i = 0; i < keysA.Count; i++)
+                        {
+                            ValNumber elemA = valsA[i] as ValNumber;
+                            if (elemA != null)
+                                result[keysA[i]] = ValNumber.Create(elemA.value * numB.value);
+                        }
+                        return result;
+                    }
                 }
             } else if (opA is ValFunction && opB is ValFunction) {
                 Function fA = ((ValFunction)opA).function;

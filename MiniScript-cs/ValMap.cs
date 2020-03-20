@@ -37,6 +37,7 @@ namespace Miniscript
         private Value selfVal;
         private Value isaVal;
         private Value eventsVal;
+        //TODO __nextEvent and __nextEventVal
         private Value eventValsVal;
         private Value isAtEndVal;
         private Value xVal;
