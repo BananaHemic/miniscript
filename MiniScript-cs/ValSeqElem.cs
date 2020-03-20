@@ -77,7 +77,7 @@ namespace Miniscript
                 int seqTypeInt = sequence.GetBaseMiniscriptType();
 
 				//if (sequence is ValTemp || sequence is ValVar)
-				if (seqTypeInt == MiniscriptTypeInts.ValTempTypeInt || seqTypeInt == MiniscriptTypeInts.ValSeqElemTypeInt)
+				if (seqTypeInt == MiniscriptTypeInts.ValTempTypeInt || seqTypeInt == MiniscriptTypeInts.ValVarTypeInt)
                 {
                     sequence = sequence.Val(context, false);
                     seqTypeInt = sequence.GetBaseMiniscriptType();
