@@ -544,6 +544,14 @@ namespace Miniscript
                 ValCustom customA = opA as ValCustom;
                 switch (op)
                 {
+                    case Op.APlusB:
+                        return customA.APlusB(opB, opBTypeInt);
+                    case Op.AMinusB:
+                        return customA.AMinusB(opB, opBTypeInt);
+                    case Op.ATimesB:
+                        return customA.ATimesB(opB, opBTypeInt);
+                    case Op.ADividedByB:
+                        return customA.ADividedByB(opB, opBTypeInt);
                 }
 
             } else {

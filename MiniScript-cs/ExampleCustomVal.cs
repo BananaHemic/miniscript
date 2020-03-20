@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace Miniscript
 {
+    /// <summary>
+    /// A completely useless Value. Used only as a reference for how
+    /// to integrate your own types, and to test that custom types
+    /// work properly
+    /// </summary>
     public class ExampleCustomVal : ValCustom
     {
         public float NumA { get; private set; }
@@ -22,7 +27,39 @@ namespace Miniscript
             NumA = numA;
             StrB = strB;
         }
-		public override Value Lookup(Value key) {
+        public override Value APlusB(Value rhs, int rhsType)
+        {
+            ExampleCustomVal val = rhs as ExampleCustomVal;
+            if (val == null)
+                return null;
+
+            return new ExampleCustomVal(NumA + val.NumA, StrB + val.StrB);
+        }
+        public override Value AMinusB(Value rhs, int rhsType)
+        {
+            ExampleCustomVal val = rhs as ExampleCustomVal;
+            if (val == null)
+                return null;
+
+            return new ExampleCustomVal(NumA - val.NumA, "???");
+        }
+        public override Value ATimesB(Value rhs, int rhsType)
+        {
+            ExampleCustomVal val = rhs as ExampleCustomVal;
+            if (val == null)
+                return null;
+
+            return new ExampleCustomVal(NumA * val.NumA, "???");
+        }
+        public override Value ADividedByB(Value rhs, int rhsType)
+        {
+            ExampleCustomVal val = rhs as ExampleCustomVal;
+            if (val == null)
+                return null;
+
+            return new ExampleCustomVal(NumA / val.NumA, "???");
+        }
+        public override Value Lookup(Value key) {
             //TODO this might need to be removed entirely
             return null;
 		}
@@ -59,17 +96,21 @@ namespace Miniscript
             return StrB;
         }
 
+        public ExampleCustomVal Inverse()
+        {
+            return new ExampleCustomVal(-NumA, StrB);
+        }
+
         public static void InitializeIntrinsics()
         {
             if (_hasStaticInit)
                 return;
             _hasStaticInit = true;
-            Intrinsic intrinsic;
             // Load the constructor
-            intrinsic = Intrinsic.Create("ExampleCustom");
-            intrinsic.AddParam(NumAValueName, 0.0);
-            intrinsic.AddParam(StringBValueName, "");
-            intrinsic.code = (context, partialResult) =>
+            Intrinsic ctor = Intrinsic.Create("ExampleCustom");
+            ctor.AddParam(NumAValueName, 0.0);
+            ctor.AddParam(StringBValueName, "");
+            ctor.code = (context, partialResult) =>
             {
 
                 ValNumber numA = context.GetVar(NumAValueName) as ValNumber;
@@ -97,10 +138,19 @@ namespace Miniscript
                     return Intrinsic.Result.Null;
                 return new Intrinsic.Result(ValString.Create(self.StrB));
             };
+            Intrinsic invIntrinsic = Intrinsic.Create("inv");
+            invIntrinsic.code = (context, partialResult) =>
+            {
+                ExampleCustomVal self = context.GetVar(ValString.selfStr) as ExampleCustomVal;
+                if (self == null)
+                    return Intrinsic.Result.Null;
+                return new Intrinsic.Result(self.Inverse());
+            };
             // Create a map with the functions for this type
             _typeMap = ValMap.Create();
             _typeMap[NumAValueName] = getNumAIntrinsic.GetFunc();
             _typeMap[StringBValueName] = getStrBIntrinsic.GetFunc();
+            _typeMap["inv"] = invIntrinsic.GetFunc();
         }
     }
 }

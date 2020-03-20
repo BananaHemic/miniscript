@@ -1,6 +1,19 @@
 ======================================================================
-==== Test adding, subtracting, and multiplying maps
+==== Test adding, subtracting, and multiplying custom value types
 p1 = ExampleCustom(1, "hi")
 print(p1.strB)
+p2 = ExampleCustom(0.9, "sec")
+p3 = p1 + p2
+print(p3.numA)
+p_times = p1 * p2
+print(p_times.numA)
+p_div = p1 / p1
+print(p_div.numA)
+p_inv = p1.inv()
+print(p_inv.numA)
 ----------------------------------------------------------------------
 hi
+1.9
+0.9
+1
+-1
