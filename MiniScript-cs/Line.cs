@@ -539,6 +539,13 @@ namespace Miniscript
                 case Op.ANotEqualB:
                     return ValNumber.Truth(fA != fB);
                 }
+            } else if(opATypeInt == MiniscriptTypeInts.ValCustomTypeInt)
+            {
+                ValCustom customA = opA as ValCustom;
+                switch (op)
+                {
+                }
+
             } else {
                 // opA is something else... perhaps null
                 switch (op) {

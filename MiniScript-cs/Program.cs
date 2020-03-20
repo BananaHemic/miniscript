@@ -182,6 +182,7 @@ class MainClass {
         Intrinsics.NumberType();
         Intrinsics.FunctionType();
         Intrinsics.ListType();
+        ExampleCustomVal.InitializeIntrinsics();
         for(int i = 1; i < Intrinsic.all.Count; i++)
             Intrinsic.all[i].GetFunc();
         //Intrinsic.GetByName("slice").GetFunc();
@@ -189,8 +190,8 @@ class MainClass {
         System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
         Console.WriteLine("--------------");
-        RunTestSuite("../../../TestSuite.txt");
-        //RunTestSuite("../../../TestSuite_min.txt");
+        //RunTestSuite("../../../TestSuite.txt");
+        RunTestSuite("../../../TestSuite_min.txt");
         //RunTestSuite("../../../TestSuite_split.txt");
         stopwatch.Stop();
         // Current time for full test: 256ms

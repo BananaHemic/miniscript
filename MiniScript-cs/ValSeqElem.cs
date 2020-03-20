@@ -74,39 +74,57 @@ namespace Miniscript
 			valueFoundIn = null;
 			int loopsLeft = 1000;		// (max __isa chain depth)
 			while (sequence != null) {
-				if (sequence is ValTemp || sequence is ValVar) sequence = sequence.Val(context, false);
-				if (sequence is ValMap) {
-					// If the map contains this identifier, return its value.
-					Value result = null;
-					var idVal = ValString.Create(identifier);
-					bool found = ((ValMap)sequence).TryGetValue(idVal, out result);
+                int seqTypeInt = sequence.GetBaseMiniscriptType();
+
+				//if (sequence is ValTemp || sequence is ValVar)
+				if (seqTypeInt == MiniscriptTypeInts.ValTempTypeInt || seqTypeInt == MiniscriptTypeInts.ValSeqElemTypeInt)
+                {
+                    sequence = sequence.Val(context, false);
+                    seqTypeInt = sequence.GetBaseMiniscriptType();
+                }
+                //if (sequence is ValMap) {
+                if (seqTypeInt == MiniscriptTypeInts.ValMapTypeInt) {
+                    // If the map contains this identifier, return its value.
+                    ValMap seqMap = sequence as ValMap;
+                    Value result = null;
+                    var idVal = ValString.Create(identifier);
+                    bool found = seqMap.TryGetValue(idVal, out result);
                     idVal.Unref();
-					if (found) {
-						valueFoundIn = (ValMap)sequence;
-						return result;
-					}
-					
-					// Otherwise, if we have an __isa, try that next.
-					if (loopsLeft < 0) return null;		// (unless we've hit the loop limit)
-					if (!((ValMap)sequence).TryGetValue(ValString.magicIsA, out sequence)) {
-						// ...and if we don't have an __isa, try the generic map type if allowed
-						if (!includeMapType) throw new KeyException(identifier);
-						sequence = context.vm.mapType ?? Intrinsics.MapType();
-						includeMapType = false;
-					}
-				} else if (sequence is ValList) {
-					sequence = context.vm.listType ?? Intrinsics.ListType();
-					includeMapType = false;
-				} else if (sequence is ValString) {
-					sequence = context.vm.stringType ?? Intrinsics.StringType();
-					includeMapType = false;
-				} else if (sequence is ValNumber) {
-					sequence = context.vm.numberType ?? Intrinsics.NumberType();
-					includeMapType = false;
-				} else if (sequence is ValFunction) {
-					sequence = context.vm.functionType ?? Intrinsics.FunctionType();
-					includeMapType = false;
-				} else {
+                    if (found) {
+                        valueFoundIn = seqMap;
+                        return result;
+                    }
+
+                    // Otherwise, if we have an __isa, try that next.
+                    if (loopsLeft < 0)
+                        return null;        // (unless we've hit the loop limit)
+                    if (!seqMap.TryGetValue(ValString.magicIsA, out sequence)) {
+                        // ...and if we don't have an __isa, try the generic map type if allowed
+                        if (!includeMapType) throw new KeyException(identifier);
+                        sequence = context.vm.mapType ?? Intrinsics.MapType();
+                        includeMapType = false;
+                    }
+                    //} else if (sequence is ValList) {
+                } else if (seqTypeInt == MiniscriptTypeInts.ValListTypeInt) {
+                    sequence = context.vm.listType ?? Intrinsics.ListType();
+                    includeMapType = false;
+                    //} else if (sequence is ValString) {
+                } else if (seqTypeInt == MiniscriptTypeInts.ValStringTypeInt) {
+                    sequence = context.vm.stringType ?? Intrinsics.StringType();
+                    includeMapType = false;
+                    //} else if (sequence is ValNumber) {
+                } else if (seqTypeInt == MiniscriptTypeInts.ValNumberTypeInt) {
+                    sequence = context.vm.numberType ?? Intrinsics.NumberType();
+                    includeMapType = false;
+                    //} else if (sequence is ValFunction) {
+                } else if (seqTypeInt == MiniscriptTypeInts.ValFunctionTypeInt) {
+                    sequence = context.vm.functionType ?? Intrinsics.FunctionType();
+                    includeMapType = false;
+                } else if(seqTypeInt == MiniscriptTypeInts.ValCustomTypeInt)
+                {
+                    ValCustom custom = sequence as ValCustom;
+                    sequence = custom.GetTypeFunctionMap();
+                } else {
 					throw new TypeException("Type Error (while attempting to look up " + identifier + ")");
 				}
 				loopsLeft--;
@@ -125,19 +143,29 @@ namespace Miniscript
 		public override Value Val(Context context, out ValMap valueFoundIn) {
 			valueFoundIn = null;
 			Value idxVal = index == null ? null : index.Val(context, false);
-			if (idxVal is ValString) return Resolve(sequence, ((ValString)idxVal).value, context, out valueFoundIn);
+            ValString idxValStr = idxVal as ValString;
+			if (idxValStr != null)
+                return Resolve(sequence, idxValStr.value, context, out valueFoundIn);
 			// Ok, we're searching for something that's not a string;
 			// this can only be done in maps and lists (and lists, only with a numeric index).
 			Value baseVal = sequence.Val(context, false);
-			if (baseVal is ValMap) {
+            int baseValTypeInt = baseVal.GetBaseMiniscriptType();
+			if (baseValTypeInt == MiniscriptTypeInts.ValMapTypeInt) {
 				Value result = ((ValMap)baseVal).Lookup(idxVal, out valueFoundIn);
-				if (valueFoundIn == null) throw new KeyException(idxVal.CodeForm(context.vm, 1));
+				if (valueFoundIn == null)
+                    throw new KeyException(idxVal.CodeForm(context.vm, 1));
 				return result;
-			} else if (baseVal is ValList && idxVal is ValNumber) {
+			//} else if (baseVal is ValList && idxVal is ValNumber) {
+			} else if (baseValTypeInt == MiniscriptTypeInts.ValListTypeInt && idxVal is ValNumber) {
 				return ((ValList)baseVal).GetElem(idxVal);
-			} else if (baseVal is ValString && idxVal is ValNumber) {
+			//} else if (baseVal is ValString && idxVal is ValNumber) {
+			} else if (baseValTypeInt == MiniscriptTypeInts.ValStringTypeInt && idxVal is ValNumber) {
 				return ((ValString)baseVal).GetElem(idxVal);
-			}
+			} else if(baseValTypeInt == MiniscriptTypeInts.ValCustomTypeInt)
+            {
+                ValCustom custom = baseVal as ValCustom;
+                return custom.Lookup(idxVal);
+            }
 				
 			throw new TypeException("Type Exception: can't index into this type");
 		}
