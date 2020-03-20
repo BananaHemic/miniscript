@@ -1,0 +1,25 @@
+==== Split a string into a list by some delimiter
+==== (without using the .split function added in 1.4!)
+oldSplit = function(s, delim)
+	result = []
+	wordStart = 0
+	sLen = s.len
+	delimLen = delim.len
+	i = 0
+	while i < sLen
+		if s[i:i+delimLen] == delim then
+			result = result + [ s[wordStart:i] ]
+			wordStart = i + delimLen
+			i = wordStart
+		else
+			i = i + 1
+		end if
+	end while
+	result = result + [ s[wordStart:i] ]
+	return result
+end function
+print oldSplit("Eat, pray, love", ", ")
+print oldSplit("...foo...bar...", "...")
+----------------------------------------------------------------------
+["Eat", "pray", "love"]
+["", "foo", "bar", ""]

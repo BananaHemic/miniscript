@@ -154,6 +154,9 @@ namespace Miniscript
 			return rhs is ValSeqElem && ((ValSeqElem)rhs).sequence == sequence
 				&& ((ValSeqElem)rhs).index == index ? 1 : 0;
 		}
-
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValSeqElemTypeInt;
+        }
 	}
 }

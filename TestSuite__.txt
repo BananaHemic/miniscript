@@ -1,0 +1,22 @@
+======================================================================
+==== Basic map functionality.
+sortedStr = function(d)
+	result = "{"
+	for k in d.indexes.sort
+		result = result + k + ": " + d[k] + ", "
+	end for
+	return result[:-2] + "}"
+end function
+a = {1:1, 2:4}
+print sortedStr(a)
+print a[2]
+print sortedStr(a + {3:9})
+print sortedStr(a + {1:-1})
+a[2] = 44
+print a[2]
+----------------------------------------------------------------------
+{1: 1, 2: 4}
+4
+{1: 1, 2: 4, 3: 9}
+{1: -1, 2: 4}
+44

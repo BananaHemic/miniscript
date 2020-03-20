@@ -12,14 +12,20 @@ namespace Miniscript
 	/// value (though some of these do nothing for some types).
 	/// </summary>
 	public abstract class Value {
-		/// <summary>
-		/// Get the current value of this Value in the given context.  Basic types
-		/// evaluate to themselves, but some types (e.g. variable references) may
-		/// evaluate to something else.
-		/// </summary>
-		/// <param name="context">TAC context to evaluate in</param>
-		/// <returns>value of this value (possibly the same as this)</returns>
-		public virtual Value Val(Context context, bool takeRef) {
+        /// <summary>
+        /// Returns an int for the type of the object. It's faster to
+        /// do this than a bunch of "is xyz" everywhere
+        /// </summary>
+        /// <returns></returns>
+        public abstract int GetBaseMiniscriptType();
+        /// <summary>
+        /// Get the current value of this Value in the given context.  Basic types
+        /// evaluate to themselves, but some types (e.g. variable references) may
+        /// evaluate to something else.
+        /// </summary>
+        /// <param name="context">TAC context to evaluate in</param>
+        /// <returns>value of this value (possibly the same as this)</returns>
+        public virtual Value Val(Context context, bool takeRef) {
 			return this;		// most types evaluate to themselves
 		}
 		

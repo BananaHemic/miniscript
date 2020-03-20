@@ -199,16 +199,17 @@ namespace Miniscript
         /// into the lhs.
         /// </summary>
         public Value Evaluate(Context context) {
-            ValNumber va = rhsA as ValNumber;
-            if (op == Op.CallIntrinsicA && va != null && va.value == 36)
-            { }
+
+            int rhsATypeInt = rhsA == null ? -1 : rhsA.GetBaseMiniscriptType();
+
             if (op == Op.AssignA || op == Op.ReturnA || op == Op.AssignImplicit) {
                 // Assignment is a bit of a special case.  It's EXTREMELY common
                 // in TAC, so needs to be efficient, but we have to watch out for
                 // the case of a RHS that is a list or map.  This means it was a
                 // literal in the source, and may contain references that need to
                 // be evaluated now.
-                if (rhsA is ValList || rhsA is ValMap) {
+                //if (rhsA is ValList || rhsA is ValMap) {
+                if (rhsATypeInt == MiniscriptTypeInts.ValListTypeInt || rhsATypeInt == MiniscriptTypeInts.ValMapTypeInt) {
                     return rhsA.FullEval(context);
                 } else if (rhsA == null) {
                     return null;
@@ -221,9 +222,11 @@ namespace Miniscript
                 // to copy the literal, in the case of a mutable object like a
                 // list or map, to ensure that if the same code executes again,
                 // we get a new, unique object.
-                if (rhsA is ValList) {
+                //if (rhsA is ValList) {
+                if (rhsATypeInt == MiniscriptTypeInts.ValListTypeInt) {
                     return ((ValList)rhsA).EvalCopy(context);
-                } else if (rhsA is ValMap) {
+                //} else if (rhsA is ValMap) {
+                } else if (rhsATypeInt == MiniscriptTypeInts.ValMapTypeInt) {
                     return ((ValMap)rhsA).EvalCopy(context);
                 } else if (rhsA == null) {
                     return null;
@@ -235,12 +238,16 @@ namespace Miniscript
             Value opA = rhsA!=null ? rhsA.Val(context, false) : null;
             Value opB = rhsB!=null ? rhsB.Val(context, false) : null;
 
+            int opATypeInt = opA == null ? -1 : opA.GetBaseMiniscriptType();
+            int opBTypeInt = opB == null ? -1 : opB.GetBaseMiniscriptType();
+
             if (op == Op.AisaB) {
                 if (opA == null) return ValNumber.Truth(opB == null);
                 return ValNumber.Truth(opA.IsA(opB, context.vm));
             }
 
-            if (op == Op.ElemBofA && opB is ValString) {
+            //if (op == Op.ElemBofA && opB is ValString) {
+            if (op == Op.ElemBofA && opBTypeInt == MiniscriptTypeInts.ValStringTypeInt) {
                 // You can now look for a string in almost anything...
                 // and we have a convenient (and relatively fast) method for it:
                 ValMap ignored;
@@ -257,21 +264,24 @@ namespace Miniscript
             
             // check for implicit coersion of other types to string; this happens
             // when either side is a string and the operator is addition.
-            if ((opA is ValString || opB is ValString) && op == Op.APlusB) {
+            //if ((opA is ValString || opB is ValString) && op == Op.APlusB) {
+            if ((opATypeInt == MiniscriptTypeInts.ValStringTypeInt || opBTypeInt == MiniscriptTypeInts.ValStringTypeInt) && op == Op.APlusB) {
                 string sA = opA.ToString(context.vm);
                 string sB = opB.ToString(context.vm);
-                if (sA.Length + sB.Length > ValString.maxSize) throw new LimitExceededException("string too large");
+                if (sA.Length + sB.Length > ValString.maxSize)
+                    throw new LimitExceededException("string too large");
                 return ValString.Create(sA + sB);
             }
 
-            if (opA is ValNumber) {
-                double fA = ((ValNumber)opA).value;
+            //if (opA is ValNumber) {
+            if (opATypeInt == MiniscriptTypeInts.ValNumberTypeInt) {
+                double numA = ((ValNumber)opA).value;
                 switch (op) {
                 case Op.GotoA:
-                    context.lineNum = (int)fA;
+                    context.lineNum = (int)numA;
                     return null;
                 case Op.GotoAifB:
-                    if (opB != null && opB.BoolValue()) context.lineNum = (int)fA;
+                    if (opB != null && opB.BoolValue()) context.lineNum = (int)numA;
                     return null;
                 case Op.GotoAifTrulyB:
                     {
@@ -281,18 +291,18 @@ namespace Miniscript
                         // (Used for short-circuit evaluation of "or".)
                         int i = 0;
                         if (opB != null) i = opB.IntValue();
-                        if (i != 0) context.lineNum = (int)fA;
+                        if (i != 0) context.lineNum = (int)numA;
                         return null;
                     }
                 case Op.GotoAifNotB:
-                    if (opB == null || !opB.BoolValue()) context.lineNum = (int)fA;
+                    if (opB == null || !opB.BoolValue()) context.lineNum = (int)numA;
                     return null;
                 case Op.CallIntrinsicA:
                     // NOTE: intrinsics do not go through NextFunctionContext.  Instead
                     // they execute directly in the current context.  (But usually, the
                     // current context is a wrapper function that was invoked via
                     // Op.CallFunction, so it got a parameter context at that time.)
-                    Intrinsic.Result result = Intrinsic.Execute((int)fA, context, context.partialResult);
+                    Intrinsic.Result result = Intrinsic.Execute((int)numA, context, context.partialResult);
                     if (result.done) {
                         context.partialResult = default(Intrinsic.Result);
                         return result.result;
@@ -304,41 +314,44 @@ namespace Miniscript
                     context.lineNum--;
                     return null;
                 case Op.NotA:
-                    return ValNumber.Create(1.0 - AbsClamp01(fA));
+                    return ValNumber.Create(1.0 - AbsClamp01(numA));
                 }
-                if (opB is ValNumber || opB == null) {
-                    double fB = opB != null ? ((ValNumber)opB).value : 0;
+                //if (opB is ValNumber || opB == null) {
+                if (opBTypeInt == MiniscriptTypeInts.ValNumberTypeInt || opB == null) {
+                    double numB = opB != null ? ((ValNumber)opB).value : 0;
                     switch (op) {
                     case Op.APlusB:
-                        return ValNumber.Create(fA + fB);
+                        return ValNumber.Create(numA + numB);
                     case Op.AMinusB:
-                        return ValNumber.Create(fA - fB);
+                        return ValNumber.Create(numA - numB);
                     case Op.ATimesB:
-                        return ValNumber.Create(fA * fB);
+                        return ValNumber.Create(numA * numB);
                     case Op.ADividedByB:
-                        return ValNumber.Create(fA / fB);
+                        return ValNumber.Create(numA / numB);
                     case Op.AModB:
-                        return ValNumber.Create(fA % fB);
+                        return ValNumber.Create(numA % numB);
                     case Op.APowB:
-                        return ValNumber.Create(Math.Pow(fA, fB));
+                        return ValNumber.Create(Math.Pow(numA, numB));
                     case Op.AEqualB:
-                        return ValNumber.Truth(fA == fB);
+                        return ValNumber.Truth(numA == numB);
                     case Op.ANotEqualB:
-                        return ValNumber.Truth(fA != fB);
+                        return ValNumber.Truth(numA != numB);
                     case Op.AGreaterThanB:
-                        return ValNumber.Truth(fA > fB);
+                        return ValNumber.Truth(numA > numB);
                     case Op.AGreatOrEqualB:
-                        return ValNumber.Truth(fA >= fB);
+                        return ValNumber.Truth(numA >= numB);
                     case Op.ALessThanB:
-                        return ValNumber.Truth(fA < fB);
+                        return ValNumber.Truth(numA < numB);
                     case Op.ALessOrEqualB:
-                        return ValNumber.Truth(fA <= fB);
+                        return ValNumber.Truth(numA <= numB);
                     case Op.AAndB:
-                        if (!(opB is ValNumber)) fB = opB != null && opB.BoolValue() ? 1 : 0;
-                        return ValNumber.Create(Clamp01(fA * fB));
+                        //if (!(opB is ValNumber))
+                            //numB = opB != null && opB.BoolValue() ? 1 : 0;
+                        return ValNumber.Create(Clamp01(numA * numB));
                     case Op.AOrB:
-                        if (!(opB is ValNumber)) fB = opB != null && opB.BoolValue() ? 1 : 0;
-                        return ValNumber.Create(Clamp01(fA + fB - fA * fB));
+                        //if (!(opB is ValNumber))
+                            //numB = opB != null && opB.BoolValue() ? 1 : 0;
+                        return ValNumber.Create(Clamp01(numA + numB - numA * numB));
                     default:
                         break;
                     }
@@ -348,8 +361,9 @@ namespace Miniscript
                 if (op == Op.AEqualB) return ValNumber.zero;
                 if (op == Op.ANotEqualB) return ValNumber.one;
 
-            } else if (opA is ValString) {
-                string sA = ((ValString)opA).value;
+            //} else if (opA is ValString) {
+            } else if (opATypeInt == MiniscriptTypeInts.ValStringTypeInt) {
+                string strA = ((ValString)opA).value;
                 if (op == Op.ATimesB || op == Op.ADividedByB) {
                     double factor = 0;
                     if (op == Op.ATimesB) {
@@ -360,24 +374,30 @@ namespace Miniscript
                         factor = 1.0 / ((ValNumber)opB).value;								
                     }
                     int repeats = (int)factor;
-                    if (repeats < 0) return ValString.empty;
-                    if (repeats * sA.Length > ValString.maxSize) throw new LimitExceededException("string too large");
+                    if (repeats < 0)
+                        return ValString.empty;
+                    if (repeats * strA.Length > ValString.maxSize)
+                        throw new LimitExceededException("string too large");
                     if (_workingStringBuilder == null)
                         _workingStringBuilder = new StringBuilder();
                     else
                         _workingStringBuilder.Clear();
-                    for (int i = 0; i < repeats; i++) _workingStringBuilder.Append(sA);
-                    int extraChars = (int)(sA.Length * (factor - repeats));
-                    if (extraChars > 0) _workingStringBuilder.Append(sA.Substring(0, extraChars));
+                    for (int i = 0; i < repeats; i++)
+                        _workingStringBuilder.Append(strA);
+                    int extraChars = (int)(strA.Length * (factor - repeats));
+                    if (extraChars > 0)
+                        _workingStringBuilder.Append(strA.Substring(0, extraChars));
                     return ValString.Create(_workingStringBuilder.ToString());						
                 }
                 if (op == Op.ElemBofA || op == Op.ElemBofIterA) {
                     int idx = opB.IntValue();
-                    Check.Range(idx, -sA.Length, sA.Length - 1, "string index");
-                    if (idx < 0) idx += sA.Length;
-                    return ValString.Create(sA.Substring(idx, 1));
+                    Check.Range(idx, -strA.Length, strA.Length - 1, "string index");
+                    if (idx < 0)
+                        idx += strA.Length;
+                    return ValString.Create(strA.Substring(idx, 1));
                 }
-                if (opB == null || opB is ValString) {
+                //if (opB == null || opB is ValString) {
+                if (opB == null || opBTypeInt == MiniscriptTypeInts.ValStringTypeInt) {
                     string sB = (opB == null ? null : opB.ToString(context.vm));
                     switch (op) {
                         case Op.AMinusB: {
@@ -386,26 +406,27 @@ namespace Miniscript
                                     opA.Ref();
                                     return opA;
                                 }
-                                if (sA.EndsWith(sB)) sA = sA.Substring(0, sA.Length - sB.Length);
-                                return ValString.Create(sA);
+                                if (strA.EndsWith(sB))
+                                    strA = strA.Substring(0, strA.Length - sB.Length);
+                                return ValString.Create(strA);
                             }
                         case Op.NotA:
-                            return ValNumber.Truth(string.IsNullOrEmpty(sA));
+                            return ValNumber.Truth(string.IsNullOrEmpty(strA));
                         case Op.AEqualB:
-                            return ValNumber.Truth(string.Equals(sA, sB));
+                            return ValNumber.Truth(string.Equals(strA, sB));
                         case Op.ANotEqualB:
-                            return ValNumber.Truth(!string.Equals(sA, sB));
+                            return ValNumber.Truth(!string.Equals(strA, sB));
                         case Op.AGreaterThanB:
-                            return ValNumber.Truth(string.Compare(sA, sB, StringComparison.Ordinal) > 0);
+                            return ValNumber.Truth(string.Compare(strA, sB, StringComparison.Ordinal) > 0);
                         case Op.AGreatOrEqualB:
-                            return ValNumber.Truth(string.Compare(sA, sB, StringComparison.Ordinal) >= 0);
+                            return ValNumber.Truth(string.Compare(strA, sB, StringComparison.Ordinal) >= 0);
                         case Op.ALessThanB:
-                            int foo = string.Compare(sA, sB, StringComparison.Ordinal);
+                            int foo = string.Compare(strA, sB, StringComparison.Ordinal);
                             return ValNumber.Truth(foo < 0);
                         case Op.ALessOrEqualB:
-                            return ValNumber.Truth(string.Compare(sA, sB, StringComparison.Ordinal) <= 0);
+                            return ValNumber.Truth(string.Compare(strA, sB, StringComparison.Ordinal) <= 0);
                         case Op.LengthOfA:
-                            return ValNumber.Create(sA.Length);
+                            return ValNumber.Create(strA.Length);
                         default:
                             break;
                     }
@@ -417,19 +438,20 @@ namespace Miniscript
                     if (op == Op.AEqualB) return ValNumber.zero;
                     if (op == Op.ANotEqualB) return ValNumber.one;						
                 }
-            } else if (opA is ValList) {
-                ValList list = ((ValList)opA);
+            //} else if (opA is ValList) {
+            } else if (opATypeInt == MiniscriptTypeInts.ValListTypeInt) {
+                ValList listA = ((ValList)opA);
                 if (op == Op.ElemBofA || op == Op.ElemBofIterA) {
                     // list indexing
                     int idx = opB.IntValue();
-                    Check.Range(idx, -list.Count, list.Count - 1, "list index");
-                    if (idx < 0) idx += list.Count;
-                    Value val = list[idx];
+                    Check.Range(idx, -listA.Count, listA.Count - 1, "list index");
+                    if (idx < 0) idx += listA.Count;
+                    Value val = listA[idx];
                     if(val != null)
                         val.Ref();
                     return val;
                 } else if (op == Op.LengthOfA) {
-                    return ValNumber.Create(list.Count);
+                    return ValNumber.Create(listA.Count);
                 } else if (op == Op.AEqualB) {
                     return ValNumber.Truth(((ValList)opA).Equality(opB));
                 } else if (op == Op.ANotEqualB) {
@@ -437,13 +459,14 @@ namespace Miniscript
                 } else if (op == Op.APlusB) {
                     // list concatenation
                     Check.Type(opB, typeof(ValList), "list concatenation");
-                    ValList list2 = ((ValList)opB);
-                    if (list.Count + list2.Count > ValList.maxSize) throw new LimitExceededException("list too large");
-                    ValList result = ValList.Create(list.Count + list2.Count);
-                    for(int i = 0; i < list.Count; i++)
-                        result.Add(context.ValueInContext(list[i]));
-                    for(int i = 0; i < list2.Count; i++)
-                        result.Add(context.ValueInContext(list2[i]));
+                    ValList listB = ((ValList)opB);
+                    if (listA.Count + listB.Count > ValList.maxSize)
+                        throw new LimitExceededException("list too large");
+                    ValList result = ValList.Create(listA.Count + listB.Count);
+                    for(int i = 0; i < listA.Count; i++)
+                        result.Add(context.ValueInContext(listA[i]));
+                    for(int i = 0; i < listB.Count; i++)
+                        result.Add(context.ValueInContext(listB[i]));
                     return result;
                 } else if (op == Op.ATimesB || op == Op.ADividedByB) {
                     // list replication (or division)
@@ -456,17 +479,18 @@ namespace Miniscript
                         factor = 1.0 / ((ValNumber)opB).value;								
                     }
                     if (factor <= 0) return ValList.Create();
-                    int finalCount = (int)(list.Count * factor);
+                    int finalCount = (int)(listA.Count * factor);
                     if (finalCount > ValList.maxSize) throw new LimitExceededException("list too large");
                     ValList result = ValList.Create(finalCount);
                     for (int i = 0; i < finalCount; i++) {
-                        result.Add(list[i % list.Count]);
+                        result.Add(listA[i % listA.Count]);
                     }
                     return result;
                 } else if (op == Op.NotA) {
                     return ValNumber.Truth(!opA.BoolValue());
                 }
-            } else if (opA is ValMap) {
+            //} else if (opA is ValMap) {
+            } else if (opATypeInt == MiniscriptTypeInts.ValMapTypeInt) {
                 if (op == Op.ElemBofA) {
                     // map lookup
                     // (note, cases where opB is a string are handled above, along with
@@ -505,7 +529,8 @@ namespace Miniscript
                 } else if (op == Op.NotA) {
                     return ValNumber.Truth(!opA.BoolValue());
                 }
-            } else if (opA is ValFunction && opB is ValFunction) {
+            //} else if (opA is ValFunction && opB is ValFunction) {
+            } else if (opATypeInt == MiniscriptTypeInts.ValFunctionTypeInt && opBTypeInt == MiniscriptTypeInts.ValFunctionTypeInt) {
                 Function fA = ((ValFunction)opA).function;
                 Function fB = ((ValFunction)opB).function;
                 switch (op) {
@@ -534,15 +559,18 @@ namespace Miniscript
             if (op == Op.AAndB || op == Op.AOrB) {
                 // We already handled the case where opA was a number above;
                 // this code handles the case where opA is something else.
-                double fA = opA != null && opA.BoolValue() ? 1 : 0;
-                double fB;
-                if (opB is ValNumber) fB = ((ValNumber)opB).value;
-                else fB = opB != null && opB.BoolValue() ? 1 : 0;
+                double numA = opA != null && opA.BoolValue() ? 1 : 0;
+                double numB;
+                //if (opB is ValNumber) fB = ((ValNumber)opB).value;
+                if (opBTypeInt == MiniscriptTypeInts.ValNumberTypeInt)
+                    numB = ((ValNumber)opB).value;
+                else
+                    numB = opB != null && opB.BoolValue() ? 1 : 0;
                 double result;
                 if (op == Op.AAndB) {
-                    result = fA * fB;
+                    result = numA * numB;
                 } else {
-                    result = 1.0 - (1.0 - AbsClamp01(fA)) * (1.0 - AbsClamp01(fB));
+                    result = 1.0 - (1.0 - AbsClamp01(numA)) * (1.0 - AbsClamp01(numB));
                 }
                 return ValNumber.Create(result);
             }

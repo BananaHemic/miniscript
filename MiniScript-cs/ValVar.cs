@@ -36,6 +36,11 @@ namespace Miniscript
 			return rhs is ValVar && ((ValVar)rhs).identifier == identifier ? 1 : 0;
 		}
 
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValVarTypeInt;
+        }
+
 		// Special name for the implicit result variable we assign to on expression statements:
 		public static ValVar implicitResult = new ValVar("_");
 	}

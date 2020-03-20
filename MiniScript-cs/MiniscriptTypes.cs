@@ -14,6 +14,20 @@ using System.Collections;
 
 namespace Miniscript {
 
+    public static class MiniscriptTypeInts
+    {
+        public const int ValNumberTypeInt = 1;
+        public const int ValSeqElemTypeInt = 2;
+        public const int ValStringTypeInt = 3;
+        public const int ValTempTypeInt = 4;
+        public const int ValVarTypeInt = 5;
+        public const int ValNullTypeInt = 6;
+        public const int ValMapTypeInt = 7;
+        public const int ValListTypeInt = 8;
+        public const int ValFunctionTypeInt = 9;
+        public const int ValCustomTypeInt = 10;
+    }
+
 	public class ValueSorter : IComparer<Value> {
 		public static ValueSorter instance = new ValueSorter();
 		public int Compare(Value x, Value y) {

@@ -39,5 +39,9 @@ namespace Miniscript
 			return rhs is ValTemp && ((ValTemp)rhs).tempNum == tempNum ? 1 : 0;
 		}
 
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValTempTypeInt;
+        }
 	}
 }

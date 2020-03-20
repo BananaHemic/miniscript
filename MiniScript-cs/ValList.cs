@@ -319,5 +319,9 @@ namespace Miniscript
                 values[i] = value;
             }
         }
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValListTypeInt;
+        }
     }
 }

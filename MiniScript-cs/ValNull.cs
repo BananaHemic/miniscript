@@ -61,5 +61,9 @@ namespace Miniscript
 		/// </summary>
 		public static ValNull instance { get { return _inst; } }
 		
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValNullTypeInt;
+        }
 	}
 }

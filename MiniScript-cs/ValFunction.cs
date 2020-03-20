@@ -62,5 +62,9 @@ namespace Miniscript
         {
             return new ValFunction(function, contextVariables);
         }
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValFunctionTypeInt;
+        }
     }
 }

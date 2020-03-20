@@ -182,6 +182,9 @@ namespace Miniscript
 			if (truthValue == 1.0) return one;
 			return ValNumber.Create(truthValue);
 		}
-
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValNumberTypeInt;
+        }
     }
 }

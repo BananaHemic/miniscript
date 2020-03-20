@@ -214,6 +214,10 @@ namespace Miniscript
 			}
 			return ValString.Create(value.Substring(i, 1));
 		}
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValStringTypeInt;
+        }
 
 		// Magic identifier for the is-a entry in the class system:
 		public static ValString selfStr = new ValString("self", false, true);

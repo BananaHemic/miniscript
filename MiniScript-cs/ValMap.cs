@@ -1061,6 +1061,11 @@ namespace Miniscript
 
 		public override bool CanSetElem() { return true; }
 
+        public override int GetBaseMiniscriptType()
+        {
+            return MiniscriptTypeInts.ValMapTypeInt;
+        }
+
         static ValString keyStr = ValString.Create("key", false);
 		static ValString valStr = ValString.Create("value", false);
 	}
