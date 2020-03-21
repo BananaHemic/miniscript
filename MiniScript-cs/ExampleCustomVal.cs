@@ -59,11 +59,6 @@ namespace Miniscript
 
             return new ExampleCustomVal(NumA / val.NumA, "???");
         }
-        public override Value Lookup(Value key) {
-            //TODO this might need to be removed entirely
-            return null;
-		}
-
         public override ValMap GetTypeFunctionMap()
         {
             if (!_hasStaticInit)

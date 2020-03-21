@@ -13,7 +13,7 @@ namespace Miniscript
             return MiniscriptTypeInts.ValCustomTypeInt;
         }
         public abstract ValMap GetTypeFunctionMap();
-        public abstract Value Lookup(Value key);
+        public virtual Value Lookup(Value key) { return null; }
         public virtual Value APlusB(Value rhs, int rhsType)
         {
             return null;
