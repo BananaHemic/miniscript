@@ -1,5 +1,8 @@
- # Developer script to make syncing code faster
+# Developer script to make syncing code faster
 CopyToCollab.bat
+# The list of files that we don't want to copy over when we
+# copy to Collab
+exclude_copy.txt
 */bin/
 */.vs/
 */obj/
