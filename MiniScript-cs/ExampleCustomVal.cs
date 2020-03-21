@@ -117,7 +117,7 @@ namespace Miniscript
 
                 return new Intrinsic.Result(customVal);
             };
-            Intrinsic getNumAIntrinsic = Intrinsic.Create("GetNumA");
+            Intrinsic getNumAIntrinsic = Intrinsic.Create("GetNumA", false);
             getNumAIntrinsic.code = (context, partialResult) =>
             {
                 ExampleCustomVal self = context.GetVar(ValString.selfStr) as ExampleCustomVal;
@@ -125,7 +125,7 @@ namespace Miniscript
                     return Intrinsic.Result.Null;
                 return new Intrinsic.Result(ValNumber.Create(self.NumA));
             };
-            Intrinsic getStrBIntrinsic = Intrinsic.Create("GetStrB");
+            Intrinsic getStrBIntrinsic = Intrinsic.Create("GetStrB", false);
             getStrBIntrinsic.code = (context, partialResult) =>
             {
                 ExampleCustomVal self = context.GetVar(ValString.selfStr) as ExampleCustomVal;
@@ -133,7 +133,7 @@ namespace Miniscript
                     return Intrinsic.Result.Null;
                 return new Intrinsic.Result(ValString.Create(self.StrB));
             };
-            Intrinsic invIntrinsic = Intrinsic.Create("inv");
+            Intrinsic invIntrinsic = Intrinsic.Create("inv", false);
             invIntrinsic.code = (context, partialResult) =>
             {
                 ExampleCustomVal self = context.GetVar(ValString.selfStr) as ExampleCustomVal;

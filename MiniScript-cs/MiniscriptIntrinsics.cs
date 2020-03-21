@@ -71,15 +71,17 @@ namespace Miniscript {
 		/// parameters, and define the code it runs.
 		/// </summary>
 		/// <param name="name">intrinsic name</param>
+		/// <param name="scopeGlobal">Do we want this intrinsic to be callable everywhere?</param>
 		/// <returns>freshly minted (but empty) static Intrinsic</returns>
-		public static Intrinsic Create(string name) {
+		public static Intrinsic Create(string name, bool scopeGlobal=true) {
 			Intrinsic result = new Intrinsic();
 			result.name = name;
 			result.numericID = all.Count;
 			result.function = new Function(null, false);
 			result.valFunction = new ValFunction(result.function, false);
-			all.Add(result);
-			nameMap[name] = result;
+            all.Add(result);
+            if (scopeGlobal)
+                nameMap[name] = result;
 			return result;
 		}
 		
