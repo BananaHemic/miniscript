@@ -27,7 +27,7 @@ namespace Miniscript
             NumA = numA;
             StrB = strB;
         }
-        public override Value APlusB(Value rhs, int rhsType)
+        public override Value APlusB(Value rhs, int rhsType, Context context)
         {
             ExampleCustomVal val = rhs as ExampleCustomVal;
             if (val == null)
@@ -35,7 +35,7 @@ namespace Miniscript
 
             return new ExampleCustomVal(NumA + val.NumA, StrB + val.StrB);
         }
-        public override Value AMinusB(Value rhs, int rhsType)
+        public override Value AMinusB(Value rhs, int rhsType, Context context)
         {
             ExampleCustomVal val = rhs as ExampleCustomVal;
             if (val == null)
@@ -43,7 +43,7 @@ namespace Miniscript
 
             return new ExampleCustomVal(NumA - val.NumA, "???");
         }
-        public override Value ATimesB(Value rhs, int rhsType)
+        public override Value ATimesB(Value rhs, int rhsType, Context context)
         {
             ExampleCustomVal val = rhs as ExampleCustomVal;
             if (val == null)
@@ -51,7 +51,7 @@ namespace Miniscript
 
             return new ExampleCustomVal(NumA * val.NumA, "???");
         }
-        public override Value ADividedByB(Value rhs, int rhsType)
+        public override Value ADividedByB(Value rhs, int rhsType, Context context)
         {
             ExampleCustomVal val = rhs as ExampleCustomVal;
             if (val == null)

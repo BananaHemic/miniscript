@@ -80,7 +80,7 @@ namespace Miniscript
 				if (seqTypeInt == MiniscriptTypeInts.ValTempTypeInt || seqTypeInt == MiniscriptTypeInts.ValVarTypeInt)
                 {
                     sequence = sequence.Val(context, false);
-                    seqTypeInt = sequence.GetBaseMiniscriptType();
+                    seqTypeInt = sequence == null ? -1 : sequence.GetBaseMiniscriptType();
                 }
                 //if (sequence is ValMap) {
                 if (seqTypeInt == MiniscriptTypeInts.ValMapTypeInt) {

@@ -545,13 +545,13 @@ namespace Miniscript
                 switch (op)
                 {
                     case Op.APlusB:
-                        return customA.APlusB(opB, opBTypeInt);
+                        return customA.APlusB(opB, opBTypeInt, context);
                     case Op.AMinusB:
-                        return customA.AMinusB(opB, opBTypeInt);
+                        return customA.AMinusB(opB, opBTypeInt, context);
                     case Op.ATimesB:
-                        return customA.ATimesB(opB, opBTypeInt);
+                        return customA.ATimesB(opB, opBTypeInt, context);
                     case Op.ADividedByB:
-                        return customA.ADividedByB(opB, opBTypeInt);
+                        return customA.ADividedByB(opB, opBTypeInt, context);
                 }
 
             } else {

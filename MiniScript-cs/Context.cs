@@ -185,6 +185,13 @@ namespace Miniscript
             }
             return defaultValue;
         }
+        public Value GetLocal(ValString identifier, Value defaultValue=null) {
+            Value result;
+            if (variables != null && variables.TryGetValue(identifier, out result)) {
+                return result;
+            }
+            return defaultValue;
+        }
         
         public int GetLocalInt(string identifier, int defaultValue = 0) {
             Value result;
