@@ -27,33 +27,41 @@ namespace Miniscript
             NumA = numA;
             StrB = strB;
         }
-        public override Value APlusB(Value rhs, int rhsType, Context context)
+        public override Value APlusB(Value other, int otherType, Context context, bool isSelfLhs)
         {
-            ExampleCustomVal val = rhs as ExampleCustomVal;
+            ExampleCustomVal val = other as ExampleCustomVal;
             if (val == null)
                 return null;
 
             return new ExampleCustomVal(NumA + val.NumA, StrB + val.StrB);
         }
-        public override Value AMinusB(Value rhs, int rhsType, Context context)
+        public override Value AMinusB(Value other, int otherType, Context context, bool isSelfLhs)
         {
-            ExampleCustomVal val = rhs as ExampleCustomVal;
+            ExampleCustomVal val = other as ExampleCustomVal;
             if (val == null)
                 return null;
 
             return new ExampleCustomVal(NumA - val.NumA, "???");
         }
-        public override Value ATimesB(Value rhs, int rhsType, Context context)
+        public override Value ATimesB(Value other, int otherType, Context context, bool isSelfLhs)
         {
-            ExampleCustomVal val = rhs as ExampleCustomVal;
+            if(otherType == MiniscriptTypeInts.ValNumberTypeInt)
+            {
+                ValNumber valNum = other as ValNumber;
+                if (valNum == null)
+                    return null;
+                return new ExampleCustomVal(NumA * (float)valNum.value, "???");
+            }
+
+            ExampleCustomVal val = other as ExampleCustomVal;
             if (val == null)
                 return null;
 
             return new ExampleCustomVal(NumA * val.NumA, "???");
         }
-        public override Value ADividedByB(Value rhs, int rhsType, Context context)
+        public override Value ADividedByB(Value other, int otherType, Context context, bool isSelfLhs)
         {
-            ExampleCustomVal val = rhs as ExampleCustomVal;
+            ExampleCustomVal val = other as ExampleCustomVal;
             if (val == null)
                 return null;
 

@@ -14,19 +14,19 @@ namespace Miniscript
         }
         public abstract ValMap GetTypeFunctionMap();
         public virtual Value Lookup(Value key) { return null; }
-        public virtual Value APlusB(Value rhs, int rhsType, Context context)
+        public virtual Value APlusB(Value other, int otherType, Context context, bool isSelfLhs)
         {
             return null;
         }
-        public virtual Value AMinusB(Value rhs, int rhsType, Context context)
+        public virtual Value AMinusB(Value rhs, int rhsType, Context context, bool isSelfLhs)
         {
             return null;
         }
-        public virtual Value ATimesB(Value rhs, int rhsType, Context context)
+        public virtual Value ATimesB(Value rhs, int rhsType, Context context, bool isSelfLhs)
         {
             return null;
         }
-        public virtual Value ADividedByB(Value rhs, int rhsType, Context context)
+        public virtual Value ADividedByB(Value rhs, int rhsType, Context context, bool isSelfLhs)
         {
             return null;
         }

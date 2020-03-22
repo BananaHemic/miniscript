@@ -11,9 +11,16 @@ p_div = p1 / p1
 print(p_div.numA)
 p_inv = p1.inv()
 print(p_inv.numA)
+p_sub = p1
+num_times_p1 = 10 * p1
+print(num_times_p1.numA)
+p1_times_num = p1 * 10
+print(p1_times_num.numA)
 ----------------------------------------------------------------------
 hi
 1.9
 0.9
 1
 -1
+10
+10

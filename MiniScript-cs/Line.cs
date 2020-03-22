@@ -355,12 +355,28 @@ namespace Miniscript
                     default:
                         break;
                     }
+                }else if(opBTypeInt == MiniscriptTypeInts.ValCustomTypeInt)
+                {
+                    // Most types should commute with number
+                    // But in case not we have a flag to say if the other is on
+                    // the lhs or rhs
+                    ValCustom customB = opB as ValCustom;
+                    switch (op)
+                    {
+                        case Op.APlusB:
+                            return customB.APlusB(opA, opATypeInt, context, false);
+                        case Op.AMinusB:
+                            return customB.AMinusB(opA, opATypeInt, context, false);
+                        case Op.ATimesB:
+                            return customB.ATimesB(opA, opATypeInt, context, false);
+                        case Op.ADividedByB:
+                            return customB.ADividedByB(opA, opATypeInt, context, false);
+                    }
                 }
                 // Handle equality testing between a number (opA) and a non-number (opB).
                 // These are always considered unequal.
                 if (op == Op.AEqualB) return ValNumber.zero;
                 if (op == Op.ANotEqualB) return ValNumber.one;
-
             //} else if (opA is ValString) {
             } else if (opATypeInt == MiniscriptTypeInts.ValStringTypeInt) {
                 string strA = ((ValString)opA).value;
@@ -545,13 +561,13 @@ namespace Miniscript
                 switch (op)
                 {
                     case Op.APlusB:
-                        return customA.APlusB(opB, opBTypeInt, context);
+                        return customA.APlusB(opB, opBTypeInt, context, true);
                     case Op.AMinusB:
-                        return customA.AMinusB(opB, opBTypeInt, context);
+                        return customA.AMinusB(opB, opBTypeInt, context, true);
                     case Op.ATimesB:
-                        return customA.ATimesB(opB, opBTypeInt, context);
+                        return customA.ATimesB(opB, opBTypeInt, context, true);
                     case Op.ADividedByB:
-                        return customA.ADividedByB(opB, opBTypeInt, context);
+                        return customA.ADividedByB(opB, opBTypeInt, context, true);
                 }
 
             } else {
