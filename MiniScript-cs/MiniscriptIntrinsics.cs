@@ -341,6 +341,13 @@ namespace Miniscript {
 				return new Intrinsic.Result(Math.Cos(context.GetVar("radians").DoubleValue()));
 			};
 
+            // degrees(radians)
+            f = Intrinsic.Create("degrees");
+            f.AddParam("radians", 0);
+			f.code = (context, partialResult) => {
+				return new Intrinsic.Result(context.GetVar("radians").DoubleValue() * (180.0 / Math.PI));
+			};
+
 			// floor(x)
 			f = Intrinsic.Create("floor");
 			f.AddParam("x", 0);
@@ -696,6 +703,14 @@ namespace Miniscript {
 				}
 				return Intrinsic.Result.Null;
 			};
+
+            // radians(degrees)
+            f = Intrinsic.Create("radians");
+            f.AddParam("degrees", 0);
+			f.code = (context, partialResult) => {
+				return new Intrinsic.Result(context.GetVar("degrees").DoubleValue() * (Math.PI / 180.0));
+			};
+
 
 			// range(from, to, step)
 			f = Intrinsic.Create("range");
