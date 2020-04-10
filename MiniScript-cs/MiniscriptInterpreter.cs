@@ -25,6 +25,17 @@ namespace Miniscript {
 	/// Interpreter: an object that contains and runs one MiniScript script.
 	/// </summary>
 	public class Interpreter : IDisposable {
+
+		/// <summary>
+		/// What made the interpreter stop running?
+		/// </summary>
+		public enum EndReason
+		{
+			EndOfFile,
+			Yield,
+			OutOfTime,
+			Error
+		}
 		
 		/// <summary>
 		/// standardOutput: receives the output of the "print" intrinsic.
@@ -182,23 +193,28 @@ namespace Miniscript {
 		/// </summary>
 		/// <param name="timeLimit">maximum amout of time to run before returning, in seconds</param>
 		/// <param name="returnEarly">if true, return as soon as we reach an intrinsic that returns a partial result</param>
-		public void RunUntilDone(double timeLimit=60, bool returnEarly=true) {
+		public EndReason RunUntilDone(double timeLimit=60, bool returnEarly=true) {
 			try {
 				if (vm == null) {
 					Compile();
-					if (vm == null) return;	// (must have been some error)
+					if (vm == null)
+						return EndReason.Error;	// (must have been some error)
 				}
 				double startTime = vm.runTime;
 				vm.yielding = false;
 				while (!vm.done && !vm.yielding) {
-					if (vm.runTime - startTime > timeLimit) return;	// time's up for now!
+					if (vm.runTime - startTime > timeLimit)
+						return EndReason.OutOfTime;	// time's up for now!
 					vm.Step();		// update the machine
-					if (returnEarly && vm.GetTopContext().partialResult.IsAssigned) return;	// waiting for something
+					if (returnEarly && vm.GetTopContext().partialResult.IsAssigned)
+						return EndReason.Yield;	// waiting for something
 				}
 			} catch (MiniscriptException mse) {
 				ReportError(mse);
 				vm.GetTopContext().JumpToEnd();
+				return EndReason.Error;
 			}
+			return EndReason.EndOfFile;
 		}
 		
 		/// <summary>
