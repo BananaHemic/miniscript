@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 
 namespace Miniscript
 {
-    public abstract class ValCustom : Value
+    public abstract class ValCustom : PoolableValue
     {
+        protected ValCustom(bool usePool) : base(usePool)
+        {
+        }
         public override int GetBaseMiniscriptType()
         {
             return MiniscriptTypeInts.ValCustomTypeInt;

@@ -21,7 +21,7 @@ namespace Miniscript
         private static bool _hasStaticInit = false;
         private static ValMap _typeMap;
 
-        public ExampleCustomVal(float numA, string strB)
+        public ExampleCustomVal(float numA, string strB) : base(false)
         {
             //MiniCompat.Log("Made custom!");
             NumA = numA;
@@ -154,6 +154,13 @@ namespace Miniscript
             _typeMap[NumAValueName] = getNumAIntrinsic.GetFunc();
             _typeMap[StringBValueName] = getStrBIntrinsic.GetFunc();
             _typeMap["inv"] = invIntrinsic.GetFunc();
+        }
+
+        protected override void ResetState()
+        {
+        }
+        protected override void ReturnToPool()
+        {
         }
     }
 }
