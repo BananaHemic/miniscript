@@ -154,7 +154,7 @@ static IntrinsicResult intrinsic_chdir(Context *context, IntrinsicResult partial
 	String pathStr = path.ToString();
 	bool ok = false;
 	if (!pathStr.empty()) {
-		if (chdir(pathStr.c_str()) == 0) ok = true;
+		if (_chdir(pathStr.c_str()) == 0) ok = true;
 	}
 	return IntrinsicResult(Value::Truth(ok));
 }

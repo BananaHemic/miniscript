@@ -1,3 +1,5 @@
+**/x64/
+**/Debug/
 # Developer script to make syncing code faster
 CopyToCollab.bat
 # The list of files that we don't want to copy over when we
