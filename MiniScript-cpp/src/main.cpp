@@ -19,8 +19,11 @@
 #include "OstreamSupport.h"
 #include "MiniScript/SplitJoin.h"
 #include "ShellIntrinsics.h"
+#include <chrono>
 
 using namespace MiniScript;
+using namespace std;
+using namespace std::chrono;
 
 bool printHeaderInfo = true;
 
@@ -151,7 +154,7 @@ static void PrintToTestOutput(String s) {
 	testOutput.Add(s);
 }
 
-static void DoOneIntegrationTest(List<String> sourceLines, long sourceLineNum,
+static long DoOneIntegrationTest(List<String> sourceLines, long sourceLineNum,
 				 List<String> expectedOutput, long outputLineNum) {
 	//std::cout << "Running test starting at line " << sourceLineNum << std::endl;
 	
@@ -160,7 +163,10 @@ static void DoOneIntegrationTest(List<String> sourceLines, long sourceLineNum,
 	miniscript.errorOutput = &PrintToTestOutput;
 	miniscript.implicitOutput = &PrintToTestOutput;
 	testOutput.Clear();
+	auto start = high_resolution_clock::now();
 	miniscript.RunUntilDone(60, false);
+	auto stop = high_resolution_clock::now();
+	auto duration = duration_cast<milliseconds>(stop - start);
 	
 	long minLen = expectedOutput.Count() < testOutput.Count() ? expectedOutput.Count() : testOutput.Count();
 	for (long i = 0; i < minLen; i++) {
@@ -181,6 +187,7 @@ static void DoOneIntegrationTest(List<String> sourceLines, long sourceLineNum,
 			Print("  EXTRA: " + testOutput[i]);
 		}
 	}
+	return (long)duration.count();
 }
 
 void RunIntegrationTests(String path) {
@@ -195,6 +202,7 @@ void RunIntegrationTests(String path) {
 	String line;
 	long lineNum = 0;
 	bool inOutputSection = false;
+	long totalTimeMS = 0;
 	while (infile.good()) {
 		infile.getline(buf, sizeof(buf));
 		lineNum++;
@@ -202,7 +210,7 @@ void RunIntegrationTests(String path) {
 
 		if (line.StartsWith("====")) {
 			if (sourceLines.Count() > 0 && sourceLines[0][0] < 0x80) {
-				DoOneIntegrationTest(sourceLines, testLineNum, expectedOutput, outputLineNum);
+				totalTimeMS += DoOneIntegrationTest(sourceLines, testLineNum, expectedOutput, outputLineNum);
 			}
 			sourceLines.Clear();
 			expectedOutput.Clear();
@@ -218,9 +226,11 @@ void RunIntegrationTests(String path) {
 			sourceLines.Add(line);
 		}
 	}
+	cout << "start time" << endl;
 	if (sourceLines.Count() > 0) {
-		DoOneIntegrationTest(sourceLines, testLineNum, expectedOutput, outputLineNum);
+		totalTimeMS += DoOneIntegrationTest(sourceLines, testLineNum, expectedOutput, outputLineNum);
 	}
+	cout << "Time for test " << totalTimeMS << "ms" << endl;
 	Print("\nIntegration tests complete.\n");
 }
 
@@ -258,6 +268,12 @@ int main(int argc, const char * argv[]) {
 	
 	AddShellIntrinsics();
 
+	RunIntegrationTests("../../TestSuite.txt");
+
+#if(DEBUG)
+	std::cout << "StringStorage instances left: " << StringStorage::instanceCount << std::endl;
+	std::cout << "total RefCountedStorage instances left (includes 2 Unicode case maps): " << RefCountedStorage::instanceCount << std::endl;
+#endif
 	
 	for (int i=1; i<argc; i++) {
 		String arg = argv[i];
