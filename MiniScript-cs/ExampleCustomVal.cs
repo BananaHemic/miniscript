@@ -15,9 +15,15 @@ namespace Miniscript
     {
         public float NumA { get; private set; }
         public string StrB { get; private set; }
+        // Variables
         const string NumAValueName = "numA";
         const string StringBValueName = "strB";
         const string InverseValueName = "inv";
+        // Functions
+        const string IsPotatoFunction = "IsPotato";
+
+        private static Intrinsic _isPotatoFunction;
+
         private static bool _hasStaticInit = false;
 
         public ExampleCustomVal(float numA, string strB) : base(false)
@@ -79,6 +85,9 @@ namespace Miniscript
                 case InverseValueName:
                     ret = Inverse();
                     return true;
+                case IsPotatoFunction:
+                    ret = _isPotatoFunction.GetFunc();
+                    return true;
             }
             ret = null;
             return false;
@@ -134,6 +143,16 @@ namespace Miniscript
                     strB != null ? strB.value : "");
 
                 return new Intrinsic.Result(customVal);
+            };
+
+            _isPotatoFunction = Intrinsic.Create(IsPotatoFunction, false);
+            _isPotatoFunction.AddParam("item");
+            _isPotatoFunction.code = (context, partialResult) =>
+            {
+                ValString str = context.GetVar("item") as ValString;
+                if (str != null && str.value == "potato")
+                    return Intrinsic.Result.True;
+                return Intrinsic.Result.False;
             };
         }
         protected override void ResetState()
