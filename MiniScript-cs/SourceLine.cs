@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System;
 using System.Text;
+#if UNITY
+using UnityEngine;
+#endif
 
 namespace Miniscript
 {
@@ -49,7 +52,7 @@ namespace Miniscript
         private static int NextPowerOfTwo(int v)
         {
 #if UNITY
-            return Mathf.NextPowerOfTwo(val)
+            return Mathf.NextPowerOfTwo(v);
 #else
             v--;
             v |= v >> 1;
