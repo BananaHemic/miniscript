@@ -15,7 +15,7 @@ namespace Miniscript
         {
             return MiniscriptTypeInts.ValCustomTypeInt;
         }
-        public abstract bool Resolve(string identifier, Context ctx, out Value val);
+        public abstract bool Resolve(string identifier, out Value val);
         public virtual Value Lookup(Value key) { return null; }
         public virtual Value APlusB(Value other, int otherType, Context context, bool isSelfLhs)
         {

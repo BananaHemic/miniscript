@@ -123,7 +123,7 @@ namespace Miniscript
                 } else if(seqTypeInt == MiniscriptTypeInts.ValCustomTypeInt)
                 {
                     ValCustom custom = sequence as ValCustom;
-                    if(custom.Resolve(identifier, context, out Value result))
+                    if(custom.Resolve(identifier, out Value result))
                     {
                         //valueFoundIn
                         return result;
