@@ -66,7 +66,7 @@ namespace Miniscript
 
             return new ExampleCustomVal(NumA / val.NumA, "???");
         }
-        public override bool Resolve(string identifier, out Value ret)
+        public override bool Resolve(string identifier, Context ctx, out Value ret)
         {
             switch (identifier)
             {
