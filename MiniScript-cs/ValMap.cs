@@ -131,6 +131,10 @@ namespace Miniscript
 #endif
         protected override void ResetState()
         {
+            Clear();
+        }
+        public void Clear()
+        {
             foreach(var kvp in map)
             {
                 kvp.Key?.Unref();
