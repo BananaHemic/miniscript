@@ -15,11 +15,10 @@ namespace Miniscript
     {
         public float NumA { get; private set; }
         public string StrB { get; private set; }
-        private static readonly string NumAValueName = "numA";
-        private static readonly string StringBValueName = "strB";
-
+        const string NumAValueName = "numA";
+        const string StringBValueName = "strB";
+        const string InverseValueName = "inv";
         private static bool _hasStaticInit = false;
-        private static ValMap _typeMap;
 
         public ExampleCustomVal(float numA, string strB) : base(false)
         {
@@ -67,11 +66,22 @@ namespace Miniscript
 
             return new ExampleCustomVal(NumA / val.NumA, "???");
         }
-        public override ValMap GetTypeFunctionMap()
+        public override bool Resolve(string identifier, out Value ret)
         {
-            if (!_hasStaticInit)
-                InitializeIntrinsics();
-            return _typeMap;
+            switch (identifier)
+            {
+                case NumAValueName:
+                    ret = ValNumber.Create(NumA);
+                    return true;
+                case StringBValueName:
+                    ret = ValString.Create(StrB);
+                    return true;
+                case InverseValueName:
+                    ret = Inverse();
+                    return true;
+            }
+            ret = null;
+            return false;
         }
 
         public override double Equality(Value rhs, int recursionDepth = 16)
@@ -125,37 +135,7 @@ namespace Miniscript
 
                 return new Intrinsic.Result(customVal);
             };
-            Intrinsic getNumAIntrinsic = Intrinsic.Create("GetNumA", false);
-            getNumAIntrinsic.code = (context, partialResult) =>
-            {
-                ExampleCustomVal self = context.GetVar(ValString.selfStr) as ExampleCustomVal;
-                if (self == null)
-                    return Intrinsic.Result.Null;
-                return new Intrinsic.Result(ValNumber.Create(self.NumA));
-            };
-            Intrinsic getStrBIntrinsic = Intrinsic.Create("GetStrB", false);
-            getStrBIntrinsic.code = (context, partialResult) =>
-            {
-                ExampleCustomVal self = context.GetVar(ValString.selfStr) as ExampleCustomVal;
-                if (self == null)
-                    return Intrinsic.Result.Null;
-                return new Intrinsic.Result(ValString.Create(self.StrB));
-            };
-            Intrinsic invIntrinsic = Intrinsic.Create("inv", false);
-            invIntrinsic.code = (context, partialResult) =>
-            {
-                ExampleCustomVal self = context.GetVar(ValString.selfStr) as ExampleCustomVal;
-                if (self == null)
-                    return Intrinsic.Result.Null;
-                return new Intrinsic.Result(self.Inverse());
-            };
-            // Create a map with the functions for this type
-            _typeMap = ValMap.Create();
-            _typeMap[NumAValueName] = getNumAIntrinsic.GetFunc();
-            _typeMap[StringBValueName] = getStrBIntrinsic.GetFunc();
-            _typeMap["inv"] = invIntrinsic.GetFunc();
         }
-
         protected override void ResetState()
         {
         }

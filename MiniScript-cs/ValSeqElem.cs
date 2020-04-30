@@ -123,7 +123,12 @@ namespace Miniscript
                 } else if(seqTypeInt == MiniscriptTypeInts.ValCustomTypeInt)
                 {
                     ValCustom custom = sequence as ValCustom;
-                    sequence = custom.GetTypeFunctionMap();
+                    if(custom.Resolve(identifier, out Value result))
+                    {
+                        //valueFoundIn
+                        return result;
+                    }
+                    return null;
                 } else {
 					throw new TypeException("Type Error (while attempting to look up " + identifier + ")");
 				}

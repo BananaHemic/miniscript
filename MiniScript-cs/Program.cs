@@ -2,6 +2,7 @@
 using Miniscript;
 using System.IO;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 class MainClass {
 
@@ -22,7 +23,8 @@ class MainClass {
 	}
 
 	static void Test(List<string> sourceLines, int sourceLineNum,
-					 List<string> expectedOutput, int outputLineNum) {
+					 List<string> expectedOutput, int outputLineNum,
+					 ref Stopwatch stopwatch) {
 		if (expectedOutput == null) expectedOutput = new List<string>();
         //		Console.WriteLine("TEST (LINE {0}):", sourceLineNum);
         //		Console.WriteLine(string.Join("\n", sourceLines));
@@ -55,7 +57,9 @@ class MainClass {
         miniscript.standardOutput = (string s) => actualOutput.Add(s);
         miniscript.errorOutput = miniscript.standardOutput;
 		miniscript.implicitOutput = miniscript.standardOutput;
+		stopwatch.Start();
 		miniscript.RunUntilDone(6000, false);
+		stopwatch.Stop();
 
 //		Console.WriteLine("ACTUAL OUTPUT:");
 //		Console.WriteLine(string.Join("\n", actualOutput));
@@ -102,11 +106,11 @@ class MainClass {
 #endif
     }
 
-	static void RunTestSuite(string path) {
+	static long RunTestSuite(string path) {
 		StreamReader file = new StreamReader(path);
 		if (file == null) {
 			Print("Unable to read: " + path);
-			return;
+			return -1;
 		}
 
 		List<string> sourceLines = null;
@@ -114,11 +118,13 @@ class MainClass {
 		int testLineNum = 0;
 		int outputLineNum = 0;
 
+		System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
 		string line = file.ReadLine();
 		int lineNum = 1;
 		while (line != null) {
 			if (line.StartsWith("====")) {
-				if (sourceLines != null) Test(sourceLines, testLineNum, expectedOutput, outputLineNum);
+				if (sourceLines != null)
+					Test(sourceLines, testLineNum, expectedOutput, outputLineNum, ref stopwatch);
 				sourceLines = null;
 				expectedOutput = null;
 			} else if (line.StartsWith("----")) {
@@ -137,8 +143,10 @@ class MainClass {
 			line = file.ReadLine();
 			lineNum++;
 		}
-		if (sourceLines != null) Test(sourceLines, testLineNum, expectedOutput, outputLineNum);
+		if (sourceLines != null)
+			Test(sourceLines, testLineNum, expectedOutput, outputLineNum, ref stopwatch);
 		Print("\nIntegration tests complete.\n");
+		return stopwatch.ElapsedMilliseconds;
 	}
 
 	static void RunFile(string path, bool dumpTAC=false) {
@@ -185,17 +193,13 @@ class MainClass {
         ExampleCustomVal.InitializeIntrinsics();
         for(int i = 1; i < Intrinsic.all.Count; i++)
             Intrinsic.all[i].GetFunc();
-        //Intrinsic.GetByName("slice").GetFunc();
-        //Intrinsic.GetByName("print").GetFunc();
-        System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-        stopwatch.Start();
         Console.WriteLine("--------------");
-        RunTestSuite("../../../TestSuite.txt");
+        long runTimeMS = RunTestSuite("../../../TestSuite.txt");
         //RunTestSuite("../../../TestSuite_min.txt");
         //RunTestSuite("../../../TestSuite_split.txt");
-        stopwatch.Stop();
-        // Current time for full test: 256ms
-        Print("Elapsed execution time: " + stopwatch.ElapsedMilliseconds + "ms");
+
+        // Current time for full test: 185ms
+        Print("Elapsed execution time: " + runTimeMS + "ms");
 
         Print("\n");
 
