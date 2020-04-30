@@ -64,8 +64,10 @@ namespace Miniscript {
 	public class Lexer {
 		public int lineNum = 1;	// start at 1, so we report 1-based line numbers
 		public int position;
-		
-		string input;
+
+		private readonly bool stringMode;
+		string inputStr;
+		SourceLine inputSourceLine;
 		int inputLength;
 
 		Queue<Token> pending;
@@ -75,7 +77,15 @@ namespace Miniscript {
 		}
 
 		public Lexer(string input) {
-			this.input = input;
+			stringMode = true;
+			this.inputStr = input;
+			inputLength = input.Length;
+			position = 0;
+			pending = new Queue<Token>();
+		}
+		public Lexer(SourceLine input) {
+			stringMode = false;
+			inputSourceLine = input;
 			inputLength = input.Length;
 			position = 0;
 			pending = new Queue<Token>();
@@ -90,6 +100,11 @@ namespace Miniscript {
 		}
 
 		public Token Dequeue() {
+			if (stringMode)
+				return Dequeue_String();
+			return Dequeue_SourceLine();
+        }
+		private Token Dequeue_SourceLine() {
 			if (pending.Count > 0) return pending.Dequeue();
 
 			int oldPos = position;
@@ -100,11 +115,11 @@ namespace Miniscript {
 			Token result = new Token();
 			result.afterSpace = (position > oldPos);
 			int startPos = position;
-			char c = input[position++];
+			char c = inputSourceLine[position++];
 
 			// Handle two-character operators first.
 			if (!AtEnd) {
-				char c2 = input[position];
+				char c2 = inputSourceLine[position];
 				if (c == '=' && c2 == '=') result.type = Token.Type.OpEqual;
 				if (c == '!' && c2 == '=') result.type = Token.Type.OpNotEqual;
 				if (c == '>' && c2 == '=') result.type = Token.Type.OpGreatEqual;
@@ -143,7 +158,7 @@ namespace Miniscript {
 			if (c == '\r') {
 				// Careful; DOS may use \r\n, so we need to check for that too.
 				result.type = Token.Type.EOL;
-				if (position < inputLength && input[position] == '\n') {
+				if (position < inputLength && inputSourceLine[position] == '\n') {
 					position++;
 					result.text = "\r\n";
 				} else {
@@ -158,7 +173,7 @@ namespace Miniscript {
 			if (c == '.') {
 				// A token that starts with a dot is just Type.Dot, UNLESS
 				// it is followed by a number, in which case it's a decimal number.
-				if (position >= inputLength || !IsNumeric(input[position])) {
+				if (position >= inputLength || !IsNumeric(inputSourceLine[position])) {
 					result.type = Token.Type.Dot;
 					return result;
 				}
@@ -168,7 +183,7 @@ namespace Miniscript {
 				result.type = Token.Type.Number;
 				while (position < inputLength) {
 					char lastc = c;
-					c = input[position];
+					c = inputSourceLine[position];
 					if (IsNumeric(c) || c == '.' || c == 'E' || c == 'e' ||
 					    (c == '-' && (lastc == 'E' || lastc == 'e'))) {
 						position++;
@@ -176,10 +191,11 @@ namespace Miniscript {
 				}
 			} else if (IsIdentifier(c)) {
 				while (position < inputLength) {
-					if (IsIdentifier(input[position])) position++;
+					if (IsIdentifier(inputSourceLine[position])) position++;
 					else break;
 				}
-				result.text = input.Substring(startPos, position - startPos);
+				//result.text = inputSourceLine.Substring(startPos, position - startPos);
+				result.text = inputSourceLine.GetString(startPos, position - startPos);
 				result.type = (Keywords.IsKeyword(result.text) ? Token.Type.Keyword : Token.Type.Identifier);
 				if (result.text == "end") {
 					// As a special case: when we see "end", grab the next keyword (after whitespace)
@@ -206,9 +222,9 @@ namespace Miniscript {
 				startPos = position;
 				bool gotEndQuote = false;
 				while (position < inputLength) {
-					c = input[position++];
+					c = inputSourceLine[position++];
 					if (c == '"') {
-						if (position < inputLength && input[position] == '"') {
+						if (position < inputLength && inputSourceLine[position] == '"') {
 							// This is just a doubled quote.
 							haveDoubledQuotes = true;
 							position++;
@@ -220,7 +236,7 @@ namespace Miniscript {
 					}
 				}
 				if (!gotEndQuote) throw new LexerException("missing closing quote (\")");
-				result.text = input.Substring(startPos, position-startPos-1);
+				result.text = inputSourceLine.GetString(startPos, position-startPos-1);
 				if (haveDoubledQuotes) result.text = result.text.Replace("\"\"", "\"");
 				return result;
 
@@ -228,19 +244,176 @@ namespace Miniscript {
 				result.type = Token.Type.Unknown;
 			}
 
-			result.text = input.Substring(startPos, position - startPos);
+			result.text = inputSourceLine.GetString(startPos, position - startPos);
+			return result;
+		}
+		private Token Dequeue_String() {
+			if (pending.Count > 0) return pending.Dequeue();
+
+			int oldPos = position;
+			SkipWhitespaceAndComment();
+
+			if (AtEnd) return Token.EOL;
+
+			Token result = new Token();
+			result.afterSpace = (position > oldPos);
+			int startPos = position;
+			char c = inputStr[position++];
+
+			// Handle two-character operators first.
+			if (!AtEnd) {
+				char c2 = inputStr[position];
+				if (c == '=' && c2 == '=') result.type = Token.Type.OpEqual;
+				if (c == '!' && c2 == '=') result.type = Token.Type.OpNotEqual;
+				if (c == '>' && c2 == '=') result.type = Token.Type.OpGreatEqual;
+				if (c == '<' && c2 == '=') result.type = Token.Type.OpLessEqual;
+
+				if (result.type != Token.Type.Unknown) {
+					position++;
+					return result;
+				}
+			}
+
+			// Handle one-char operators next.
+			if (c == '+') result.type = Token.Type.OpPlus;
+			else if (c == '-') result.type = Token.Type.OpMinus;
+			else if (c == '*') result.type = Token.Type.OpTimes;
+			else if (c == '/') result.type = Token.Type.OpDivide;
+			else if (c == '%') result.type = Token.Type.OpMod;
+			else if (c == '^') result.type = Token.Type.OpPower;
+			else if (c == '(') result.type = Token.Type.LParen;
+			else if (c == ')') result.type = Token.Type.RParen;
+			else if (c == '[') result.type = Token.Type.LSquare;
+			else if (c == ']') result.type = Token.Type.RSquare;
+			else if (c == '{') result.type = Token.Type.LCurly;
+			else if (c == '}') result.type = Token.Type.RCurly;
+			else if (c == ',') result.type = Token.Type.Comma;
+			else if (c == ':') result.type = Token.Type.Colon;
+			else if (c == '=') result.type = Token.Type.OpAssign;
+			else if (c == '<') result.type = Token.Type.OpLesser;
+			else if (c == '>') result.type = Token.Type.OpGreater;
+			else if (c == '@') result.type = Token.Type.AddressOf;
+			else if (c == ';' || c == '\n') {
+				result.type = Token.Type.EOL;
+				result.text = c == ';' ? ";" : "\n";
+				if (c != ';') lineNum++;
+			}
+			if (c == '\r') {
+				// Careful; DOS may use \r\n, so we need to check for that too.
+				result.type = Token.Type.EOL;
+				if (position < inputLength && inputStr[position] == '\n') {
+					position++;
+					result.text = "\r\n";
+				} else {
+					result.text = "\r";
+				}
+				lineNum++;
+			}
+			if (result.type != Token.Type.Unknown) return result;
+
+			// Then, handle more extended tokens.
+
+			if (c == '.') {
+				// A token that starts with a dot is just Type.Dot, UNLESS
+				// it is followed by a number, in which case it's a decimal number.
+				if (position >= inputLength || !IsNumeric(inputStr[position])) {
+					result.type = Token.Type.Dot;
+					return result;
+				}
+			}
+
+			if (c == '.' || IsNumeric(c)) {
+				result.type = Token.Type.Number;
+				while (position < inputLength) {
+					char lastc = c;
+					c = inputStr[position];
+					if (IsNumeric(c) || c == '.' || c == 'E' || c == 'e' ||
+					    (c == '-' && (lastc == 'E' || lastc == 'e'))) {
+						position++;
+					} else break;
+				}
+			} else if (IsIdentifier(c)) {
+				while (position < inputLength) {
+					if (IsIdentifier(inputStr[position])) position++;
+					else break;
+				}
+				result.text = inputStr.Substring(startPos, position - startPos);
+				result.type = (Keywords.IsKeyword(result.text) ? Token.Type.Keyword : Token.Type.Identifier);
+				if (result.text == "end") {
+					// As a special case: when we see "end", grab the next keyword (after whitespace)
+					// too, and conjoin it, so our token is "end if", "end function", etc.
+					Token nextWord = Dequeue();
+					if (nextWord != null && nextWord.type == Token.Type.Keyword) {
+						result.text = result.text + " " + nextWord.text;
+					} else {
+						// Oops, didn't find another keyword.  User error.
+						throw new LexerException("'end' without following keyword ('if', 'function', etc.)");
+					}
+				} else if (result.text == "else") {
+					// And similarly, conjoin an "if" after "else" (to make "else if").
+					int p = position;
+					Token nextWord = Dequeue();
+					if (nextWord != null && nextWord.text == "if") result.text = "else if";
+					else position = p;
+				}
+				return result;
+			} else if (c == '"') {
+				// Lex a string... to the closing ", but skipping (and singling) a doubled double quote ("")
+				result.type = Token.Type.String;
+				bool haveDoubledQuotes = false;
+				startPos = position;
+				bool gotEndQuote = false;
+				while (position < inputLength) {
+					c = inputStr[position++];
+					if (c == '"') {
+						if (position < inputLength && inputStr[position] == '"') {
+							// This is just a doubled quote.
+							haveDoubledQuotes = true;
+							position++;
+						} else {
+							// This is the closing quote, marking the end of the string.
+							gotEndQuote = true;
+							break;
+						}
+					}
+				}
+				if (!gotEndQuote) throw new LexerException("missing closing quote (\")");
+				result.text = inputStr.Substring(startPos, position-startPos-1);
+				if (haveDoubledQuotes) result.text = result.text.Replace("\"\"", "\"");
+				return result;
+
+			} else {
+				result.type = Token.Type.Unknown;
+			}
+
+			result.text = inputStr.Substring(startPos, position - startPos);
 			return result;
 		}
 
 		void SkipWhitespaceAndComment() {
-			while (!AtEnd && IsWhitespace(input[position])) {
-				position++;
-			}
+			if (stringMode)
+			{
+                while (!AtEnd && IsWhitespace(inputStr[position])) {
+                    position++;
+                }
 
-			if (position < input.Length - 1 && input[position] == '/' && input[position + 1] == '/') {
-				// Comment.  Skip to end of line.
-				position += 2;
-				while (!AtEnd && input[position] != '\n') position++;
+                if (position < inputStr.Length - 1 && inputStr[position] == '/' && inputStr[position + 1] == '/') {
+                    // Comment.  Skip to end of line.
+                    position += 2;
+                    while (!AtEnd && inputStr[position] != '\n') position++;
+                }
+			}
+			else
+			{
+                while (!AtEnd && IsWhitespace(inputSourceLine[position])) {
+                    position++;
+                }
+
+                if (position < inputSourceLine.Length - 1 && inputSourceLine[position] == '/' && inputSourceLine[position + 1] == '/') {
+                    // Comment.  Skip to end of line.
+                    position += 2;
+                    while (!AtEnd && inputSourceLine[position] != '\n') position++;
+                }
 			}
 		}
 		
@@ -262,7 +435,9 @@ namespace Miniscript {
 		
 		public bool IsAtWhitespace() {
 			// Caution: ignores queue, and uses only current position
-			return AtEnd || IsWhitespace(input[position]);
+			if(stringMode)
+                return AtEnd || IsWhitespace(inputStr[position]);
+            return AtEnd || IsWhitespace(inputSourceLine[position]);
 		}
 
 		public static bool IsInStringLiteral(int charPos, string source, int startPos=0) {

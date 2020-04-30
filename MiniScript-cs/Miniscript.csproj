@@ -54,6 +54,7 @@
     <Compile Include="MiniscriptKeywords.cs" />
     <Compile Include="MiniscriptTypes.cs" />
     <Compile Include="MiniscriptErrors.cs" />
+    <Compile Include="SourceLine.cs" />
     <Compile Include="ValCustom.cs" />
     <Compile Include="ValFunction.cs" />
     <Compile Include="ValList.cs" />

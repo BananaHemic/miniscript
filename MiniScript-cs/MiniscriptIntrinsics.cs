@@ -276,12 +276,14 @@ namespace Miniscript {
 			initialized = true;
 			Intrinsic f;
 
+#if !UNITY
 			// abs(x)
 			f = Intrinsic.Create("abs");
 			f.AddParam("x", 0);
 			f.code = (context, partialResult) => {
 				return new Intrinsic.Result(Math.Abs(context.GetVar("x").DoubleValue()));
 			};
+#endif
 
 			// acos(x)
 			f = Intrinsic.Create("acos");
